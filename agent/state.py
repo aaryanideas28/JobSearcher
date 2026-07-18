@@ -19,4 +19,12 @@ class AgentState(TypedDict):
     messages: Annotated[List[str], operator.add]
     jobs: Annotated[List[JobPosting], operator.add]
     current_draft: Optional[ApplicationDraft]
-    is_approved: bool = False
+    is_approved: bool
+
+def get_initial_state():
+    return {
+        "messages": [],
+        "jobs": [],
+        "current_draft": None,
+        "is_approved": False
+    }
