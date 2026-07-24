@@ -1,0 +1,17 @@
+# File: requirements.txt
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+celery
+redis
+langgraph
+scikit-learn
+httpx
+tenacity
+google-api-python-client
+jinja2
+weasyprint
+pytest
+pydantic
+pydantic-settings
