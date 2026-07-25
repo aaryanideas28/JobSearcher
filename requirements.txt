@@ -10,8 +10,12 @@ scikit-learn
 httpx
 tenacity
 google-api-python-client
+google-auth
 jinja2
 weasyprint
 pytest
 pydantic
 pydantic-settings
+python-multipart
+pypdf
+python-docx

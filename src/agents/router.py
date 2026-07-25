@@ -4,6 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from config.settings import get_settings
+
 
 class ModelTier(StrEnum):
     """Supported local model tiers."""
@@ -27,12 +29,13 @@ class TaskComplexityRouter:
 
     def __init__(
         self,
-        small_model_name: str = "llama3.2:1b",
-        large_model_name: str = "llama3.1:8b",
+        small_model_name: str | None = None,
+        large_model_name: str | None = None,
         complexity_threshold: float = 0.65,
     ) -> None:
-        self.small_model_name = small_model_name
-        self.large_model_name = large_model_name
+        settings = get_settings()
+        self.small_model_name = small_model_name or settings.ollama_small_model
+        self.large_model_name = large_model_name or settings.ollama_large_model
         self.complexity_threshold = complexity_threshold
 
     def estimate_complexity(self, prompt: str, context: dict[str, object] | None = None) -> float:

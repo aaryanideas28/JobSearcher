@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     google_client_secret: str | None = Field(default=None, alias="GOOGLE_CLIENT_SECRET")
     google_refresh_token: str | None = Field(default=None, alias="GOOGLE_REFRESH_TOKEN")
     email_sender: str = Field(default="no-reply@example.com", alias="EMAIL_SENDER")
+    auth_token_secret: str = Field(default="change-me-in-production", alias="AUTH_TOKEN_SECRET")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

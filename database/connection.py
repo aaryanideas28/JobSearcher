@@ -21,13 +21,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, clas
 
 
 def init_db() -> None:
-    """Initialize database tables for local development."""
+    """Create database tables for local development and test runs."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def session_scope() -> Generator[Session, None, None]:
-    """Yield a database session and close it after use."""
+    """Yield a SQLAlchemy session and close it after use."""
 
     db = SessionLocal()
     try:

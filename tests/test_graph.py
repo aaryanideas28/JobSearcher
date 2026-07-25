@@ -6,13 +6,16 @@ from src.workflow.state import AgentState
 
 
 def test_validate_input_node_sets_status() -> None:
-    state = AgentState(
-        user_resume_json={"summary": "Python engineer"},
-        job_target_json={"description": "Backend engineer"},
-    )
+    state: AgentState = {
+        "session_id": "session-1",
+        "user_id": 1,
+        "resume_text": "Python engineer",
+        "job_description": "Backend engineer",
+    }
     result = validate_input_node(state)
     assert result is state
-    assert result.workflow_status == "validated"
+    assert result["workflow_status"] == "validated"
+    assert result["validation_errors"] == []
 
 
 def test_workflow_graph_compiles() -> None:

@@ -44,42 +44,44 @@ except ImportError:  # pragma: no cover - dependency bootstrap fallback
 def validate_input_node(state: AgentState) -> AgentState:
     """Validate initial workflow input."""
 
-    state.workflow_status = "validated"
+    state["workflow_status"] = "validated"
+    state.setdefault("validation_errors", [])
     return state
 
 
 def discover_jobs_node(state: AgentState) -> AgentState:
     """Discover candidate job postings."""
 
+    state.setdefault("discovered_jobs", [])
     return state
 
 
 def optimize_resume_node(state: AgentState) -> AgentState:
     """Optimize resume text for the selected job target."""
 
-    state.optimized_resume = state.resume_text
+    state["optimized_resume"] = state.get("resume_text", "")
     return state
 
 
 def score_ats_node(state: AgentState) -> AgentState:
     """Score optimized resume against the job description."""
 
-    state.ats_score = 0.0
+    state["ats_score"] = 0.0
     return state
 
 
 def build_outreach_node(state: AgentState) -> AgentState:
     """Build cover letter and email payload artifacts."""
 
-    state.cover_letter = ""
-    state.email_payload = {}
+    state["cover_letter"] = ""
+    state["email_payload"] = {}
     return state
 
 
 def dispatch_outreach_node(state: AgentState) -> AgentState:
     """Queue final outreach dispatch."""
 
-    state.workflow_status = "dispatch_ready"
+    state["workflow_status"] = "dispatch_ready"
     return state
 
 

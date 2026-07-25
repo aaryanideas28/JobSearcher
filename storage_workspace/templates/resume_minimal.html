@@ -1,0 +1,98 @@
+<!-- File: storage_workspace/templates/resume_minimal.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ candidate_name | default("Resume") }}</title>
+  <style>
+    @page {
+      size: Letter;
+      margin: 0.65in;
+    }
+
+    body {
+      color: #111827;
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.45;
+    }
+
+    header {
+      border-bottom: 1px solid #d1d5db;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 22pt;
+      margin: 0 0 4px;
+    }
+
+    h2 {
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 12pt;
+      margin: 18px 0 8px;
+      padding-bottom: 3px;
+      text-transform: uppercase;
+    }
+
+    ul {
+      margin: 6px 0 0 18px;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{{ candidate_name }}</h1>
+    <div>{{ email }}{% if phone %} | {{ phone }}{% endif %}{% if location %} | {{ location }}{% endif %}</div>
+  </header>
+
+  {% if summary %}
+  <section>
+    <h2>Summary</h2>
+    <p>{{ summary }}</p>
+  </section>
+  {% endif %}
+
+  {% if skills %}
+  <section>
+    <h2>Skills</h2>
+    <p>{{ skills | join(", ") }}</p>
+  </section>
+  {% endif %}
+
+  {% if experience %}
+  <section>
+    <h2>Experience</h2>
+    {% for role in experience %}
+    <article>
+      <strong>{{ role.title }}</strong>{% if role.company %}, {{ role.company }}{% endif %}
+      {% if role.dates %}<div>{{ role.dates }}</div>{% endif %}
+      {% if role.bullets %}
+      <ul>
+        {% for bullet in role.bullets %}
+        <li>{{ bullet }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if education %}
+  <section>
+    <h2>Education</h2>
+    {% for item in education %}
+    <p><strong>{{ item.school }}</strong>{% if item.degree %}, {{ item.degree }}{% endif %}</p>
+    {% endfor %}
+  </section>
+  {% endif %}
+</body>
+</html>
