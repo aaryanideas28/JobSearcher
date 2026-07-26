@@ -10,9 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from config.settings import get_settings
+<<<<<<< HEAD
 from src.api.routes import hitl, outreach, resume
 from src.api.progress import progress_hub
 from src.workflow.tasks import celery_app
+=======
+from src.api.routes import auth, dashboard, hitl, intake, jobs, outreach, resume, workflow
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
 
 settings = get_settings()
 
@@ -31,8 +35,20 @@ app.add_middleware(
 )
 
 app.include_router(resume.router, prefix=f"{settings.api_v1_prefix}/resume", tags=["resume"])
+app.include_router(intake.router, prefix=f"{settings.api_v1_prefix}/intake", tags=["intake"])
+app.include_router(jobs.router, prefix=f"{settings.api_v1_prefix}/jobs", tags=["jobs"])
+app.include_router(workflow.router, prefix=f"{settings.api_v1_prefix}/workflow", tags=["workflow"])
 app.include_router(hitl.router, prefix=f"{settings.api_v1_prefix}/hitl", tags=["human-in-the-loop"])
 app.include_router(outreach.router, prefix=f"{settings.api_v1_prefix}/outreach", tags=["outreach"])
+app.include_router(auth.router, prefix=f"{settings.api_v1_prefix}/auth", tags=["auth"])
+app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+
+
+@app.get("/")
+async def root() -> dict[str, str]:
+    """Return a friendly root response for browser users."""
+
+    return {"message": "AI Resume Automation Platform is running. Open /dashboard or /docs."}
 
 
 @app.get("/health")

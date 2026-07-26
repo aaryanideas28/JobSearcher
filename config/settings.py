@@ -63,6 +63,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("GMAIL_REFRESH_TOKEN", "GOOGLE_REFRESH_TOKEN") if AliasChoices else "GMAIL_REFRESH_TOKEN",
     )
     email_sender: str = Field(default="no-reply@example.com", alias="EMAIL_SENDER")
+    auth_token_secret: str = Field(default="change-me-in-production", alias="AUTH_TOKEN_SECRET")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

@@ -1,5 +1,6 @@
 # Python environment
 venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
@@ -7,6 +8,10 @@ __pycache__/
 
 # Environment variables
 .env
+
+# Generated workspace files
+storage_workspace/uploads/
+storage_workspace/generated/
 
 # OS files
 .DS_Store

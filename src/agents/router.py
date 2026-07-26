@@ -7,6 +7,8 @@ from enum import Enum
 from config.settings import get_settings
 from src.workflow.state import AgentState
 
+from config.settings import get_settings
+
 
 class ModelTier(str, Enum):
     """Supported local model tiers."""
@@ -36,8 +38,12 @@ class TaskComplexityRouter:
     ) -> None:
         settings = get_settings()
         self.small_model_name = small_model_name or settings.ollama_small_model
+<<<<<<< HEAD
         # LLM_MODEL_NAME is the configured high-capability local model.
         self.large_model_name = large_model_name or settings.llm_model_name
+=======
+        self.large_model_name = large_model_name or settings.ollama_large_model
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
         self.complexity_threshold = complexity_threshold
 
     def estimate_complexity(self, prompt: str, context: dict[str, object] | None = None) -> float:

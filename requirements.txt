@@ -10,9 +10,15 @@ scikit-learn
 httpx
 tenacity
 google-api-python-client
+google-auth
 jinja2
 weasyprint
 pytest
 pydantic
 pydantic-settings
 python-multipart
+<<<<<<< HEAD
+=======
+pypdf
+python-docx
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a

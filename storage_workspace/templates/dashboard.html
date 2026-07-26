@@ -1,0 +1,339 @@
+<!-- File: storage_workspace/templates/dashboard.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Resume Automation Platform</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #5d667a;
+      --line: #d9deea;
+      --accent: #2563eb;
+      --ok: #15803d;
+      --warn: #b45309;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, sans-serif;
+      line-height: 1.45;
+    }
+    header {
+      background: #101827;
+      color: #fff;
+      padding: 18px 28px;
+    }
+    h1 { font-size: 22px; margin: 0; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(320px, 430px) 1fr;
+      gap: 18px;
+      padding: 18px;
+    }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    h2 { font-size: 16px; margin: 0 0 12px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin: 12px 0 5px;
+    }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font: inherit;
+      padding: 9px 10px;
+    }
+    textarea { min-height: 92px; resize: vertical; }
+    button {
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      margin-top: 14px;
+      padding: 10px 14px;
+    }
+    button.secondary { background: #475569; }
+    button.success { background: var(--ok); }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+    .stack { display: grid; gap: 12px; }
+    .status {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 10px;
+      min-height: 20px;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0f172a;
+      color: #e5e7eb;
+      border-radius: 8px;
+      min-height: 220px;
+      padding: 14px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .metric {
+      background: #eef4ff;
+      border: 1px solid #c7d7fe;
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .metric strong { display: block; font-size: 12px; color: var(--muted); }
+    .metric span { font-size: 18px; font-weight: 700; }
+    .review-grid {
+      display: grid;
+      gap: 14px;
+    }
+    .review-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .review-panel h3 {
+      font-size: 14px;
+      margin: 0 0 8px;
+    }
+    .review-panel textarea {
+      min-height: 180px;
+    }
+    .email-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .small-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AI Resume Automation Platform</h1>
+  </header>
+  <main>
+    <section>
+      <h2>Candidate Intake</h2>
+      <form id="workflow-form" class="stack">
+        <label>Email</label>
+        <input id="email" value="test@example.com">
+        <label>Full Name</label>
+        <input id="fullName" value="Test User">
+        <label>Target Role</label>
+        <input id="targetRole" value="Backend Engineer">
+        <label>Skills to Highlight (comma separated)</label>
+        <input id="skills" value="Python, FastAPI, Docker, SQLAlchemy, Redis">
+        <label>Resume Text</label>
+        <textarea id="resumeText">Python backend engineer with FastAPI and SQLAlchemy experience.</textarea>
+        <label>Company</label>
+        <input id="company" value="Acme Corp">
+        <label>Job Description</label>
+        <textarea id="jobDescription">We need a Python backend engineer with FastAPI, SQLAlchemy, Redis, Docker, and API experience.</textarea>
+        <label>Recruiter Email</label>
+        <input id="recipient" value="recruiter@example.com">
+        <button type="submit">Generate Resume + Email Draft</button>
+      </form>
+      <div id="status" class="status"></div>
+    </section>
+    <section>
+      <h2>Draft Review</h2>
+      <div class="summary">
+        <div class="metric"><strong>Resume ID</strong><span id="resumeId">-</span></div>
+        <div class="metric"><strong>Job ID</strong><span id="jobId">-</span></div>
+        <div class="metric"><strong>ATS</strong><span id="ats">-</span></div>
+      </div>
+      <div id="emptyState" class="status">Submit the form to generate an optimized resume and email draft.</div>
+      <div id="review" class="review-grid" hidden>
+        <div class="review-panel">
+          <h3>Optimized Resume</h3>
+          <textarea id="optimizedResume"></textarea>
+          <div class="small-note">Edit this before approval if you want the human-reviewed version saved.</div>
+        </div>
+        <div class="review-panel">
+          <h3>Email Draft</h3>
+          <div class="email-meta">
+            <div>
+              <label>To</label>
+              <input id="emailTo">
+            </div>
+            <div>
+              <label>Subject</label>
+              <input id="emailSubject">
+            </div>
+          </div>
+          <label>Body</label>
+          <textarea id="emailBody"></textarea>
+        </div>
+        <div class="review-panel">
+          <h3>Review Signals</h3>
+          <pre id="signals"></pre>
+        </div>
+        <div class="actions">
+          <button id="approve" class="secondary" type="button">Approve Gate 3</button>
+          <button id="send" class="success" type="button" disabled>Send Email</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const api = "/api/v1";
+    let latest = null;
+    let gate3Approved = false;
+
+    function csv(id) {
+      return document.getElementById(id).value.split(",").map((item) => item.trim()).filter(Boolean);
+    }
+
+    async function post(path, body) {
+      const response = await fetch(api + path, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return response.json();
+    }
+
+    document.getElementById("workflow-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const status = document.getElementById("status");
+      status.textContent = "Working...";
+      try {
+        const email = document.getElementById("email").value;
+        const fullName = document.getElementById("fullName").value;
+        const skills = csv("skills");
+        const profile = await post("/intake/profile", {
+          email,
+          full_name: fullName,
+          target_role: document.getElementById("targetRole").value,
+          skills_to_highlight: skills,
+          preferred_locations: [],
+          experience_level: "mid",
+          metadata: {}
+        });
+        const resume = await post("/resume/upload", {
+          user_email: email,
+          full_name: fullName,
+          resume_text: document.getElementById("resumeText").value,
+          version_label: "dashboard",
+          metadata: {}
+        });
+        const job = await post("/jobs/manual", {
+          user_id: profile.user_id,
+          company_name: document.getElementById("company").value,
+          role_title: document.getElementById("targetRole").value,
+          job_description: document.getElementById("jobDescription").value,
+          job_url: null,
+          metadata: {}
+        });
+        latest = await post("/workflow/manual-optimize-draft", {
+          resume_version_id: resume.resume_version_id,
+          job_target_id: job.job_target_id,
+          candidate_preference_id: profile.candidate_preference_id,
+          recipient_email: document.getElementById("recipient").value
+        });
+        document.getElementById("resumeId").textContent = latest.resume_version_id;
+        document.getElementById("jobId").textContent = latest.job_target_id;
+        document.getElementById("ats").textContent = latest.ats_score;
+        renderDraft(latest);
+        status.textContent = "Draft ready for review.";
+      } catch (error) {
+        status.textContent = "Error: " + error.message;
+      }
+    });
+
+    function renderDraft(result) {
+      gate3Approved = false;
+      document.getElementById("emptyState").hidden = true;
+      document.getElementById("review").hidden = false;
+      document.getElementById("send").disabled = true;
+      document.getElementById("optimizedResume").value = result.optimized_resume || "";
+      document.getElementById("emailTo").value = result.email_draft?.recipient_email || "";
+      document.getElementById("emailSubject").value = result.email_draft?.subject || "";
+      document.getElementById("emailBody").value = result.email_draft?.body || "";
+      document.getElementById("signals").textContent = JSON.stringify({
+        status: result.status,
+        session_id: result.session_id,
+        routing: result.routing,
+        skills_to_highlight: result.skills_to_highlight,
+        generated_pdf: result.generated_pdf,
+        quality_checks: result.quality_checks,
+        hitl_gate: result.hitl_gate?.message
+      }, null, 2);
+    }
+
+    document.getElementById("approve").addEventListener("click", async () => {
+      if (!latest) return;
+      const response = await post("/hitl/gate-3", {
+        session_id: latest.session_id,
+        approved: true,
+        reviewer_email: document.getElementById("email").value,
+        notes: "Approved from dashboard.",
+        edited_resume: document.getElementById("optimizedResume").value,
+        edited_email_subject: document.getElementById("emailSubject").value,
+        edited_email_body: document.getElementById("emailBody").value
+      });
+      latest.optimized_resume = document.getElementById("optimizedResume").value;
+      latest.email_draft.subject = document.getElementById("emailSubject").value;
+      latest.email_draft.body = document.getElementById("emailBody").value;
+      latest.email_draft.recipient_email = document.getElementById("emailTo").value;
+      gate3Approved = true;
+      document.getElementById("send").disabled = false;
+      document.getElementById("signals").textContent = JSON.stringify(response, null, 2);
+      document.getElementById("status").textContent = "Gate 3 approved.";
+    });
+
+    document.getElementById("send").addEventListener("click", async () => {
+      if (!latest || !gate3Approved) return;
+      const response = await post("/outreach/dispatch", {
+        recipient_email: document.getElementById("emailTo").value,
+        subject: document.getElementById("emailSubject").value,
+        body: document.getElementById("emailBody").value,
+        attachments: latest.email_draft?.attachments || [],
+        metadata: {
+          session_id: latest.session_id,
+          resume_version_id: latest.resume_version_id,
+          job_target_id: latest.job_target_id
+        }
+      });
+      document.getElementById("signals").textContent = JSON.stringify(response, null, 2);
+      document.getElementById("status").textContent = "Email dispatch queued.";
+    });
+  </script>
+</body>
+</html>

@@ -6,11 +6,20 @@ from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlparse
 
+<<<<<<< HEAD
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from config.settings import get_settings
 from src.workflow.state import AgentState
+=======
+from config.settings import get_settings
+
+try:
+    import httpx
+except ImportError:  # pragma: no cover - dependency bootstrap fallback
+    httpx = None  # type: ignore[assignment]
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
 
 
 @dataclass(slots=True)
@@ -72,6 +81,7 @@ class JobDiscoveryAgent:
             response.raise_for_status()
         return response.json()
 
+<<<<<<< HEAD
     async def search_tavily(self, query: str, max_results: int = 10) -> list[JobPosting]:
         """Search Tavily and normalize its results. Missing configuration is non-fatal."""
 
@@ -101,6 +111,39 @@ class JobDiscoveryAgent:
             response = await client.get(url, headers={"User-Agent": "KaizenJobDiscovery/1.0"})
             response.raise_for_status()
         return response.text
+=======
+        if httpx is None or not self.tavily_api_key:
+            return []
+
+        payload = {
+            "api_key": self.tavily_api_key,
+            "query": query,
+            "search_depth": "advanced",
+            "max_results": max_results,
+            "include_answer": False,
+            "include_raw_content": True,
+        }
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            response = await client.post("https://api.tavily.com/search", json=payload)
+            response.raise_for_status()
+
+        data = response.json()
+        postings: list[JobPosting] = []
+        for result in data.get("results", []):
+            title = str(result.get("title") or "Discovered role")
+            url = str(result.get("url") or "")
+            content = str(result.get("raw_content") or result.get("content") or "")
+            postings.append(
+                JobPosting(
+                    title=title,
+                    company=self._infer_company(title=title, url=url),
+                    url=url,
+                    description=content,
+                    metadata={"source": "tavily", "score": result.get("score")},
+                )
+            )
+        return postings
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
 
     async def scrape_job_page(self, url: str) -> JobPosting:
         """Fetch a page and extract readable job text with retry protection."""
@@ -119,6 +162,7 @@ class JobDiscoveryAgent:
     async def discover(self, query: str, max_results: int = 10) -> list[JobPosting]:
         """Search and concurrently enrich results that lack Tavily page content."""
 
+<<<<<<< HEAD
         postings = await self.search_tavily(query, max_results)
         missing = [posting for posting in postings if not posting.description.strip()]
         pages = await asyncio.gather(*(self.scrape_job_page(posting.url) for posting in missing), return_exceptions=True)
@@ -152,3 +196,16 @@ class JobDiscoveryAgent:
         if " - " in title:
             return title.rsplit(" - ", 1)[-1].strip()
         return urlparse(url).netloc.removeprefix("www.") or "Unknown Company"
+=======
+        return await self.search_tavily(query=query, max_results=max_results)
+
+    def _infer_company(self, title: str, url: str) -> str:
+        """Infer a company label from a title or URL when providers omit it."""
+
+        if " at " in title:
+            return title.rsplit(" at ", maxsplit=1)[-1].strip()
+        if " - " in title:
+            return title.rsplit(" - ", maxsplit=1)[-1].strip()
+        host = url.split("//")[-1].split("/")[0].replace("www.", "")
+        return host or "Unknown Company"
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a

@@ -1,7 +1,12 @@
+<<<<<<< HEAD
+=======
+<!-- File: storage_workspace/templates/resume_minimal.html -->
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
+<<<<<<< HEAD
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ candidate_name | default("Resume") }}</title>
   <style>
@@ -17,11 +22,56 @@
     article { margin-bottom: .75rem; }
     .contact { color: #4b5563; margin-top: .3rem; }
     .role-meta { color: #4b5563; font-size: 10pt; }
+=======
+  <title>{{ candidate_name | default("Resume") }}</title>
+  <style>
+    @page {
+      size: Letter;
+      margin: 0.65in;
+    }
+
+    body {
+      color: #111827;
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.45;
+    }
+
+    header {
+      border-bottom: 1px solid #d1d5db;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 22pt;
+      margin: 0 0 4px;
+    }
+
+    h2 {
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 12pt;
+      margin: 18px 0 8px;
+      padding-bottom: 3px;
+      text-transform: uppercase;
+    }
+
+    ul {
+      margin: 6px 0 0 18px;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
   </style>
 </head>
 <body>
   <header>
     <h1>{{ candidate_name }}</h1>
+<<<<<<< HEAD
     <div class="contact">
       {{ email }}{% if phone %} · {{ phone }}{% endif %}{% if location %} · {{ location }}{% endif %}
     </div>
@@ -29,15 +79,45 @@
 
   {% if summary %}<section><h2>Summary</h2><p>{{ summary }}</p></section>{% endif %}
   {% if skills %}<section><h2>Skills</h2><p>{{ skills | join(", ") }}</p></section>{% endif %}
+=======
+    <div>{{ email }}{% if phone %} | {{ phone }}{% endif %}{% if location %} | {{ location }}{% endif %}</div>
+  </header>
+
+  {% if summary %}
+  <section>
+    <h2>Summary</h2>
+    <p>{{ summary }}</p>
+  </section>
+  {% endif %}
+
+  {% if skills %}
+  <section>
+    <h2>Skills</h2>
+    <p>{{ skills | join(", ") }}</p>
+  </section>
+  {% endif %}
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
 
   {% if experience %}
   <section>
     <h2>Experience</h2>
     {% for role in experience %}
     <article>
+<<<<<<< HEAD
       <strong>{{ role.title }}{% if role.company %} · {{ role.company }}{% endif %}</strong>
       {% if role.dates %}<div class="role-meta">{{ role.dates }}</div>{% endif %}
       {% if role.bullets %}<ul>{% for bullet in role.bullets %}<li>{{ bullet }}</li>{% endfor %}</ul>{% endif %}
+=======
+      <strong>{{ role.title }}</strong>{% if role.company %}, {{ role.company }}{% endif %}
+      {% if role.dates %}<div>{{ role.dates }}</div>{% endif %}
+      {% if role.bullets %}
+      <ul>
+        {% for bullet in role.bullets %}
+        <li>{{ bullet }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
     </article>
     {% endfor %}
   </section>
@@ -46,7 +126,13 @@
   {% if education %}
   <section>
     <h2>Education</h2>
+<<<<<<< HEAD
     {% for item in education %}<p><strong>{{ item.school }}</strong>{% if item.degree %} · {{ item.degree }}{% endif %}</p>{% endfor %}
+=======
+    {% for item in education %}
+    <p><strong>{{ item.school }}</strong>{% if item.degree %}, {{ item.degree }}{% endif %}</p>
+    {% endfor %}
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
   </section>
   {% endif %}
 </body>

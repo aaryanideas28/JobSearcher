@@ -52,22 +52,55 @@ except ImportError:  # pragma: no cover - dependency bootstrap fallback
 def validate_input_node(state: AgentState) -> AgentState:
     """Mark the matching request as ready for analysis."""
 
-    state.workflow_status = "validated"
+    state["workflow_status"] = "validated"
+    state.setdefault("validation_errors", [])
     return state
 
 
 async def analyzer_node(state: AgentState) -> dict[str, str]:
     """Placeholder for resume and job-description analysis."""
 
+<<<<<<< HEAD
     _ = (state.job_description, state.resume_text)
     return {"workflow_status": "analyzed"}
+=======
+    state.setdefault("discovered_jobs", [])
+    return state
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
 
 
 async def scorer_node(state: AgentState) -> dict[str, float | str]:
     """Placeholder for the ATS matching-score calculation."""
 
+<<<<<<< HEAD
     _ = (state.job_description, state.resume_text)
     return {"matching_score": 0.0, "workflow_status": "scored"}
+=======
+    state["optimized_resume"] = state.get("resume_text", "")
+    return state
+
+
+def score_ats_node(state: AgentState) -> AgentState:
+    """Score optimized resume against the job description."""
+
+    state["ats_score"] = 0.0
+    return state
+
+
+def build_outreach_node(state: AgentState) -> AgentState:
+    """Build cover letter and email payload artifacts."""
+
+    state["cover_letter"] = ""
+    state["email_payload"] = {}
+    return state
+
+
+def dispatch_outreach_node(state: AgentState) -> AgentState:
+    """Queue final outreach dispatch."""
+
+    state["workflow_status"] = "dispatch_ready"
+    return state
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
 
 
 def build_workflow_graph() -> Any:

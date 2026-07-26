@@ -1,7 +1,13 @@
 from __future__ import annotations
 
+<<<<<<< HEAD
 import asyncio
 import base64
+=======
+import base64
+from email.message import EmailMessage
+from pathlib import Path
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
 from typing import Any
 
 from config.settings import get_settings
@@ -39,6 +45,7 @@ settings = get_settings()
 celery_app = Celery("resume_automation", broker=settings.celery_broker_url, backend=settings.celery_result_backend)
 
 
+<<<<<<< HEAD
 @celery_app.task(name="render_workflow_documents_task")
 def render_workflow_documents_task(state_payload: dict[str, Any]) -> dict[str, Any]:
     """Celery worker entrypoint for resume and cover-letter PDF generation."""
@@ -74,6 +81,42 @@ def _send_gmail_raw(raw_mime: str) -> dict[str, Any]:
         raise RuntimeError("google-api-python-client is not installed.")
     if not settings.google_client_id or not settings.google_client_secret or not settings.google_refresh_token:
         raise RuntimeError("Google OAuth credentials are not configured for Gmail dispatch.")
+=======
+@celery_app.task(name="send_email_outreach_task")
+def send_email_outreach_task(email_payload: dict[str, Any]) -> dict[str, Any]:
+    """Send outreach email through Gmail when OAuth is configured."""
+
+    if not _gmail_configured():
+        return {
+            "status": "skipped_no_google_oauth_config",
+            "payload": email_payload,
+            "message": "Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN to send real email.",
+        }
+
+    try:
+        service = _build_gmail_service()
+        message = _build_mime_message(email_payload)
+        result = service.users().messages().send(userId="me", body={"raw": message}).execute()
+    except Exception as exc:  # pragma: no cover - depends on Google API runtime
+        return {"status": "failed", "error": str(exc), "payload": email_payload}
+
+    return {
+        "status": "sent",
+        "provider": "gmail",
+        "provider_message_id": result.get("id"),
+        "payload": email_payload,
+    }
+
+
+def _gmail_configured() -> bool:
+    return bool(settings.google_client_id and settings.google_client_secret and settings.google_refresh_token)
+
+
+def _build_gmail_service() -> Any:
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
     credentials = Credentials(
         token=None,
         refresh_token=settings.google_refresh_token,
@@ -82,6 +125,7 @@ def _send_gmail_raw(raw_mime: str) -> dict[str, Any]:
         client_secret=settings.google_client_secret,
         scopes=["https://www.googleapis.com/auth/gmail.send"],
     )
+<<<<<<< HEAD
     response = build("gmail", "v1", credentials=credentials, cache_discovery=False).users().messages().send(
         userId="me", body={"raw": raw_mime}
     ).execute()
@@ -113,3 +157,27 @@ async def enqueue_gmail_dispatch(email_payload: dict[str, Any]) -> str | None:
 
     result = await asyncio.to_thread(dispatch_gmail_task.delay, email_payload)
     return getattr(result, "id", None)
+=======
+    return build("gmail", "v1", credentials=credentials)
+
+
+def _build_mime_message(email_payload: dict[str, Any]) -> str:
+    message = EmailMessage()
+    message["To"] = str(email_payload["recipient_email"])
+    message["From"] = settings.email_sender
+    message["Subject"] = str(email_payload["subject"])
+    message.set_content(str(email_payload["body"]))
+
+    for attachment in email_payload.get("attachments", []):
+        path = Path(str(attachment))
+        if not path.exists() or not path.is_file():
+            continue
+        message.add_attachment(
+            path.read_bytes(),
+            maintype="application",
+            subtype="pdf" if path.suffix.lower() == ".pdf" else "octet-stream",
+            filename=path.name,
+        )
+
+    return base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+>>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
