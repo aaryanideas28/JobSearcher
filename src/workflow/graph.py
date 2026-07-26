@@ -1,6 +1,8 @@
-# File: src/workflow/graph.py
+"""LangGraph workflow for candidate-to-job matching."""
+
 from __future__ import annotations
 
+import inspect
 from typing import Any, Callable
 
 from src.workflow.state import AgentState
@@ -11,23 +13,30 @@ except ImportError:  # pragma: no cover - dependency bootstrap fallback
     END = "__end__"
 
     class _CompiledGraph:
-        def __init__(self, entrypoint: Callable[[AgentState], AgentState] | None = None) -> None:
-            self.entrypoint = entrypoint
+        def __init__(self, nodes: list[Callable[[AgentState], Any]]) -> None:
+            self.nodes = nodes
 
-        def invoke(self, state: AgentState) -> AgentState:
-            if self.entrypoint is None:
-                return state
-            return self.entrypoint(state)
+        async def ainvoke(self, state: dict[str, Any] | AgentState) -> AgentState:
+            current_state = state if isinstance(state, AgentState) else AgentState(**state)
+            for node in self.nodes:
+                result = node(current_state)
+                if inspect.isawaitable(result):
+                    result = await result
+                if isinstance(result, AgentState):
+                    current_state = result
+                elif result:
+                    current_state = current_state.model_copy(update=result)
+            return current_state
 
     class StateGraph:  # type: ignore[no-redef]
-        """Tiny compatibility shim for import-only test environments."""
+        """Minimal compatibility shim for environments without LangGraph."""
 
         def __init__(self, state_schema: type[AgentState]) -> None:
             self.state_schema = state_schema
-            self.nodes: dict[str, Callable[[AgentState], AgentState]] = {}
+            self.nodes: dict[str, Callable[[AgentState], Any]] = {}
             self.entrypoint: str | None = None
 
-        def add_node(self, name: str, action: Callable[[AgentState], AgentState]) -> None:
+        def add_node(self, name: str, action: Callable[[AgentState], Any]) -> None:
             self.nodes[name] = action
 
         def add_edge(self, start_key: str, end_key: str) -> None:
@@ -37,68 +46,52 @@ except ImportError:  # pragma: no cover - dependency bootstrap fallback
             self.entrypoint = key
 
         def compile(self) -> _CompiledGraph:
-            action = self.nodes.get(self.entrypoint or "")
-            return _CompiledGraph(action)
+            return _CompiledGraph(list(self.nodes.values()))
 
 
 def validate_input_node(state: AgentState) -> AgentState:
-    """Validate initial workflow input."""
+    """Mark the matching request as ready for analysis."""
 
     state.workflow_status = "validated"
     return state
 
 
-def discover_jobs_node(state: AgentState) -> AgentState:
-    """Discover candidate job postings."""
+async def analyzer_node(state: AgentState) -> dict[str, str]:
+    """Placeholder for resume and job-description analysis."""
 
-    return state
-
-
-def optimize_resume_node(state: AgentState) -> AgentState:
-    """Optimize resume text for the selected job target."""
-
-    state.optimized_resume = state.resume_text
-    return state
+    _ = (state.job_description, state.resume_text)
+    return {"workflow_status": "analyzed"}
 
 
-def score_ats_node(state: AgentState) -> AgentState:
-    """Score optimized resume against the job description."""
+async def scorer_node(state: AgentState) -> dict[str, float | str]:
+    """Placeholder for the ATS matching-score calculation."""
 
-    state.ats_score = 0.0
-    return state
-
-
-def build_outreach_node(state: AgentState) -> AgentState:
-    """Build cover letter and email payload artifacts."""
-
-    state.cover_letter = ""
-    state.email_payload = {}
-    return state
-
-
-def dispatch_outreach_node(state: AgentState) -> AgentState:
-    """Queue final outreach dispatch."""
-
-    state.workflow_status = "dispatch_ready"
-    return state
+    _ = (state.job_description, state.resume_text)
+    return {"matching_score": 0.0, "workflow_status": "scored"}
 
 
 def build_workflow_graph() -> Any:
-    """Assemble and compile the resume automation workflow graph."""
+    """Build and compile the candidate-to-job matching workflow."""
 
-    graph = StateGraph(AgentState)
-    graph.add_node("validate_input", validate_input_node)
-    graph.add_node("discover_jobs", discover_jobs_node)
-    graph.add_node("optimize_resume", optimize_resume_node)
-    graph.add_node("score_ats", score_ats_node)
-    graph.add_node("build_outreach", build_outreach_node)
-    graph.add_node("dispatch_outreach", dispatch_outreach_node)
+    workflow = StateGraph(AgentState)
+    workflow.add_node("validate_input", validate_input_node)
+    workflow.add_node("analyzer", analyzer_node)
+    workflow.add_node("scorer", scorer_node)
+    workflow.set_entry_point("validate_input")
+    workflow.add_edge("validate_input", "analyzer")
+    workflow.add_edge("analyzer", "scorer")
+    workflow.add_edge("scorer", END)
+    return workflow.compile()
 
-    graph.set_entry_point("validate_input")
-    graph.add_edge("validate_input", "discover_jobs")
-    graph.add_edge("discover_jobs", "optimize_resume")
-    graph.add_edge("optimize_resume", "score_ats")
-    graph.add_edge("score_ats", "build_outreach")
-    graph.add_edge("build_outreach", "dispatch_outreach")
-    graph.add_edge("dispatch_outreach", END)
-    return graph.compile()
+
+graph = build_workflow_graph()
+
+
+__all__ = [
+    "AgentState",
+    "analyzer_node",
+    "build_workflow_graph",
+    "graph",
+    "scorer_node",
+    "validate_input_node",
+]

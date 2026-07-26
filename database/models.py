@@ -1,81 +1,65 @@
-# File: database/models.py
+"""Core SQLAlchemy models for candidates, resumes, and job postings."""
+
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
-
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
 
-
-class Base(DeclarativeBase):
-    """Base class for SQLAlchemy ORM models."""
+from database.base import Base
 
 
 def json_column_type() -> JSON:
-    """Return a portable JSON column type for the current database dialect."""
+    """Return a JSON type compatible with SQLite and PostgreSQL."""
 
     return JSON().with_variant(JSONB, "postgresql")
 
 
-class User(Base):
-    """Application user who owns resume versions and job targets."""
+class Job(Base):
+    """A job posting evaluated by the matching and ATS engines."""
 
-    __tablename__ = "users"
+    __tablename__ = "jobs"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
-    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    company: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    requirements: Mapped[list[str]] = mapped_column(json_column_type(), default=list, nullable=False)
 
-    resume_versions: Mapped[list[ResumeVersion]] = relationship(
-        back_populates="user",
+
+class Candidate(Base):
+    """A candidate whose resumes are processed by the application."""
+
+    __tablename__ = "candidates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    skills: Mapped[list[str]] = mapped_column(json_column_type(), default=list, nullable=False)
+    current_role: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    resumes: Mapped[list[Resume]] = relationship(
+        back_populates="candidate",
         cascade="all, delete-orphan",
     )
-    job_targets: Mapped[list[JobTarget]] = relationship(
-        back_populates="user",
-        cascade="all, delete-orphan",
+
+
+class Resume(Base):
+    """A candidate resume with original content and extracted plain text."""
+
+    __tablename__ = "resumes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    candidate_id: Mapped[int] = mapped_column(
+        ForeignKey("candidates.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    parsed_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    candidate: Mapped[Candidate] = relationship(back_populates="resumes")
 
 
-class ResumeVersion(Base):
-    """Stored version of a resume and its optimization metadata."""
-
-    __tablename__ = "resume_versions"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    version_label: Mapped[str] = mapped_column(String(100), nullable=False)
-    raw_text: Mapped[str] = mapped_column(Text, nullable=False)
-    optimized_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    ats_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    metadata_json: Mapped[dict[str, Any]] = mapped_column(json_column_type(), default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    user: Mapped[User] = relationship(back_populates="resume_versions")
-
-
-class JobTarget(Base):
-    """Job posting or target role used to tune resume optimization."""
-
-    __tablename__ = "job_targets"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    company_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    role_title: Mapped[str] = mapped_column(String(255), nullable=False)
-    job_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
-    job_description: Mapped[str] = mapped_column(Text, nullable=False)
-    fit_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="discovered", nullable=False)
-    metadata_json: Mapped[dict[str, Any]] = mapped_column(json_column_type(), default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    user: Mapped[User] = relationship(back_populates="job_targets")
+__all__ = ["Base", "Candidate", "Job", "Resume"]

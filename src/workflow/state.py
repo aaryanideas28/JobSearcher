@@ -20,6 +20,7 @@ class AgentState(BaseModel):
     user_id: int | None = None
     resume_text: str = ""
     job_description: str = ""
+    matching_score: float | None = None
     target_company: str | None = None
     target_role: str | None = None
     discovered_jobs: list[dict[str, Any]] = Field(default_factory=list)
