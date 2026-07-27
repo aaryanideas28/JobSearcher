@@ -18,12 +18,14 @@ class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
 
     app_name: str = Field(default="AI Resume Automation Platform", alias="APP_NAME")
+    app_version: str = Field(default="0.1.0", alias="APP_VERSION")
     app_env: Literal["development", "test", "staging", "production"] = Field(
         default="development",
         alias="APP_ENV",
     )
     app_debug: bool = Field(default=True, alias="APP_DEBUG")
     api_v1_prefix: str = Field(default="/api/v1", alias="API_V1_PREFIX")
+    cors_origins: list[str] = Field(default=["*"], alias="CORS_ORIGINS")
 
     database_url: str = Field(
         default="sqlite:///./resume_automation.db",
@@ -64,6 +66,12 @@ class Settings(BaseSettings):
     )
     email_sender: str = Field(default="no-reply@example.com", alias="EMAIL_SENDER")
     auth_token_secret: str = Field(default="change-me-in-production", alias="AUTH_TOKEN_SECRET")
+
+    celery_task_always_eager: bool = Field(default=True, alias="CELERY_TASK_ALWAYS_EAGER")
+    smtp_host: str | None = Field(default=None, alias="SMTP_HOST")
+    smtp_port: int = Field(default=587, alias="SMTP_PORT")
+    smtp_username: str | None = Field(default=None, alias="SMTP_USERNAME")
+    smtp_password: str | None = Field(default=None, alias="SMTP_PASSWORD")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

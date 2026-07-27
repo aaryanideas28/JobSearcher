@@ -1,25 +1,26 @@
 # File: src/agents/router.py
+"""Cost and task complexity router for selecting local Ollama model tiers."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
-
-from config.settings import get_settings
-from src.workflow.state import AgentState
+from enum import StrEnum
 
 from config.settings import get_settings
 
 
-class ModelTier(str, Enum):
-    """Supported local model tiers."""
+class ModelTier(StrEnum):
+    """Supported model tiers."""
 
     SMALL = "1.5b"
     LARGE = "8b"
+    LIGHTWEIGHT = "1.5b"
+    MAIN = "8b"
 
 
 @dataclass(slots=True)
 class RoutingDecision:
-    """Decision object returned by the task complexity router."""
+    """Structured routing decision returned by the router."""
 
     model_tier: ModelTier
     model_name: str
@@ -28,7 +29,7 @@ class RoutingDecision:
 
 
 class TaskComplexityRouter:
-    """Select a small or large model based on task complexity signals."""
+    """Select a lightweight or main LLM based on prompt complexity."""
 
     def __init__(
         self,
@@ -38,42 +39,52 @@ class TaskComplexityRouter:
     ) -> None:
         settings = get_settings()
         self.small_model_name = small_model_name or settings.ollama_small_model
-<<<<<<< HEAD
-        # LLM_MODEL_NAME is the configured high-capability local model.
-        self.large_model_name = large_model_name or settings.llm_model_name
-=======
         self.large_model_name = large_model_name or settings.ollama_large_model
->>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
         self.complexity_threshold = complexity_threshold
 
-    def estimate_complexity(self, prompt: str, context: dict[str, object] | None = None) -> float:
-        """Estimate task complexity using lightweight lexical and metadata features."""
-
-        context = context or {}
-        token_count = len(prompt.split())
-        has_job_description = bool(context.get("job_description"))
-        complex_markers = ("compare", "optimize", "rewrite", "analyze", "cover letter", "tailor", "application")
-        has_multi_step_instruction = any(marker in prompt.lower() for marker in complex_markers)
-        raw_score = min(1.0, (token_count / 600.0) + (0.25 if has_job_description else 0.0) + (0.2 if has_multi_step_instruction else 0.0))
-        return round(raw_score, 3)
-
-    def select_model(self, prompt: str, context: dict[str, object] | None = None) -> RoutingDecision:
-        """Return a routing decision for the given prompt and optional context."""
-
-        complexity = self.estimate_complexity(prompt, context)
-        if complexity >= self.complexity_threshold:
-            return RoutingDecision(ModelTier.LARGE, self.large_model_name, "complex_task", complexity)
-        return RoutingDecision(ModelTier.SMALL, self.small_model_name, "simple_task", complexity)
-
-    async def route(self, state: AgentState) -> AgentState:
-        """Store an async routing decision in the shared workflow state."""
-
-        prompt = str(state.metadata.get("request", state.job_description or state.resume_text))
-        decision = self.select_model(prompt, {"job_description": state.job_description})
-        state.metadata["routing"] = {
-            "model_tier": decision.model_tier.value,
-            "model_name": decision.model_name,
-            "reason": decision.reason,
-            "estimated_complexity": decision.estimated_complexity,
+    def estimate_complexity(self, task_text: str) -> float:
+        """Estimate task complexity between 0.0 and 1.0."""
+        words = task_text.split()
+        length_score = min(len(words) / 900.0, 1.0)
+        advanced_terms = {
+            "architecture",
+            "architect",
+            "analyze",
+            "multi-agent",
+            "compliance",
+            "migration",
+            "platform",
+            "reasoning",
+            "optimize",
+            "security",
+            "distributed",
+            "orchestration",
+            "hallucination",
         }
-        return state
+        term_hits = sum(1 for word in words if word.lower().strip(".,:;()[]{}") in advanced_terms)
+        term_score = min(term_hits / 5.0, 1.0)
+        return round((length_score * 0.65) + (term_score * 0.35), 4)
+
+    def route(self, task_text: str) -> RoutingDecision:
+        """Return the selected model tier and model name."""
+        complexity = self.estimate_complexity(task_text)
+        if complexity >= self.complexity_threshold:
+            return RoutingDecision(
+                model_tier=ModelTier.LARGE,
+                model_name=self.large_model_name,
+                reason="complex_task",
+                estimated_complexity=complexity,
+            )
+        return RoutingDecision(
+            model_tier=ModelTier.SMALL,
+            model_name=self.small_model_name,
+            reason="simple_task",
+            estimated_complexity=complexity,
+        )
+
+    def select_model(self, task_text: str, context: dict[str, object] | None = None) -> RoutingDecision:
+        """Backward-compatible model-selection API."""
+        combined_text = task_text
+        if context:
+            combined_text = f"{task_text}\n{context}"
+        return self.route(combined_text)

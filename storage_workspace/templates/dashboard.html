@@ -4,214 +4,621 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI Resume Automation Platform</title>
+  <title>Stratum Job Agent - AI Resume Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: light;
-      --bg: #f7f8fb;
-      --panel: #ffffff;
-      --ink: #172033;
-      --muted: #5d667a;
-      --line: #d9deea;
-      --accent: #2563eb;
-      --ok: #15803d;
-      --warn: #b45309;
+      color-scheme: dark;
+      --bg: #090d16;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #151e36 0%, #090d16 100%);
+      --card-bg: rgba(17, 25, 40, 0.65);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-primary: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #6366f1;
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      --accent-hover: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+      --success: #10b981;
+      --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --input-bg: rgba(10, 15, 30, 0.8);
+      --focus-ring: rgba(99, 102, 241, 0.4);
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     body {
       margin: 0;
       background: var(--bg);
-      color: var(--ink);
-      font-family: Arial, sans-serif;
-      line-height: 1.45;
+      background-image: var(--bg-gradient);
+      color: var(--text-primary);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
+
     header {
-      background: #101827;
-      color: #fff;
-      padding: 18px 28px;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    h1 { font-size: 22px; margin: 0; }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      background: var(--accent-gradient);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-family: 'Space Grotesk', sans-serif;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      margin: 0;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #ffffff, #c7d2fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: var(--success);
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+
     main {
       display: grid;
-      grid-template-columns: minmax(320px, 430px) 1fr;
-      gap: 18px;
-      padding: 18px;
+      grid-template-columns: minmax(360px, 460px) 1fr;
+      gap: 24px;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      flex-grow: 1;
     }
+
     section {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 16px;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
     }
-    h2 { font-size: 16px; margin: 0 0 12px; }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+      margin: 0 0 20px 0;
+      color: #fff;
+      border-left: 4px solid var(--accent);
+      padding-left: 10px;
+    }
+
     label {
       display: block;
       font-size: 13px;
-      font-weight: 700;
-      margin: 12px 0 5px;
+      font-weight: 600;
+      color: #e5e7eb;
+      margin: 14px 0 6px 0;
     }
-    input, textarea {
+
+    .form-group {
+      margin-bottom: 2px;
+    }
+
+    input[type="text"], input[type="email"], textarea {
       width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      font: inherit;
-      padding: 9px 10px;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
     }
-    textarea { min-height: 92px; resize: vertical; }
+
+    input[type="text"]:focus, input[type="email"]:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--focus-ring);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    /* Custom File Upload Styling */
+    .file-upload-container {
+      position: relative;
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+    }
+
+    .file-upload-container:hover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .file-upload-container input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .upload-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+
+    .upload-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+
+    .upload-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .file-selected-name {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--success);
+      font-weight: 600;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
     button {
       border: 0;
-      border-radius: 6px;
-      background: var(--accent);
+      border-radius: 8px;
+      background: var(--accent-gradient);
       color: #fff;
       cursor: pointer;
+      font-size: 14px;
       font-weight: 700;
-      margin-top: 14px;
-      padding: 10px 14px;
+      padding: 12px 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
     }
-    button.secondary { background: #475569; }
-    button.success { background: var(--ok); }
+
+    button:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+      transform: translateY(-1px);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      box-shadow: none;
+    }
+
+    button.secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    button.success {
+      background: var(--success-gradient);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    button.success:hover:not(:disabled) {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.5);
+    }
+
     button:disabled {
       cursor: not-allowed;
-      opacity: 0.55;
+      opacity: 0.4;
+      transform: none !important;
+      box-shadow: none !important;
     }
-    .stack { display: grid; gap: 12px; }
-    .status {
-      color: var(--muted);
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .status-message {
+      color: var(--text-muted);
       font-size: 13px;
-      margin-top: 10px;
-      min-height: 20px;
-    }
-    pre {
-      white-space: pre-wrap;
-      word-break: break-word;
-      background: #0f172a;
-      color: #e5e7eb;
+      margin-top: 14px;
+      padding: 10px 14px;
       border-radius: 8px;
-      min-height: 220px;
-      padding: 14px;
+      background: rgba(255, 255, 255, 0.02);
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .summary {
+
+    .status-message.working {
+      border-left: 3px solid var(--accent);
+      color: #93c5fd;
+    }
+
+    .status-message.success {
+      border-left: 3px solid var(--success);
+      color: #a7f3d0;
+      background: rgba(16, 185, 129, 0.05);
+    }
+
+    .status-message.error {
+      border-left: 3px solid var(--error);
+      color: #fca5a5;
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .summary-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card strong {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .metric-card span {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .metric-card.ats-metric {
+      background: rgba(99, 102, 241, 0.05);
+      border-color: rgba(99, 102, 241, 0.15);
+    }
+
+    .metric-card.ats-metric span {
+      color: #c7d2fe;
+      background: linear-gradient(135deg, #a5b4fc 0%, #e879f9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 22px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+      border: 1px dashed var(--card-border);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.01);
+      margin-top: 10px;
+    }
+
+    .empty-state-icon {
+      font-size: 40px;
       margin-bottom: 12px;
+      opacity: 0.5;
     }
-    .metric {
-      background: #eef4ff;
-      border: 1px solid #c7d7fe;
-      border-radius: 6px;
-      padding: 10px;
-    }
-    .metric strong { display: block; font-size: 12px; color: var(--muted); }
-    .metric span { font-size: 18px; font-weight: 700; }
+
     .review-grid {
       display: grid;
-      gap: 14px;
+      gap: 20px;
     }
-    .review-panel {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px;
+
+    .review-card {
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 18px;
     }
-    .review-panel h3 {
+
+    .review-card h3 {
       font-size: 14px;
-      margin: 0 0 8px;
+      font-weight: 600;
+      color: #fff;
+      margin: 0 0 12px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .review-panel textarea {
+
+    .review-card textarea {
+      background: rgba(0, 0, 0, 0.2);
+      border-color: rgba(255, 255, 255, 0.05);
       min-height: 180px;
     }
-    .email-meta {
+
+    .email-meta-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 12px;
+      margin-bottom: 12px;
     }
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .small-note {
-      color: var(--muted);
+
+    pre {
+      font-family: 'Space Grotesk', monospace;
       font-size: 12px;
-      margin-top: 8px;
+      background: #050811;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 14px;
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #38bdf8;
+      max-height: 250px;
+      overflow-y: auto;
     }
-    @media (max-width: 900px) {
-      main { grid-template-columns: 1fr; }
+
+    .actions-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border-left-color: #fff;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>AI Resume Automation Platform</h1>
+    <div class="logo-container">
+      <div class="logo-icon">S</div>
+      <h1>Stratum Job Agent</h1>
+    </div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      Server Online
+    </div>
   </header>
   <main>
     <section>
       <h2>Candidate Intake</h2>
       <form id="workflow-form" class="stack">
-        <label>Email</label>
-        <input id="email" value="test@example.com">
-        <label>Full Name</label>
-        <input id="fullName" value="Test User">
-        <label>Target Role</label>
-        <input id="targetRole" value="Backend Engineer">
-        <label>Skills to Highlight (comma separated)</label>
-        <input id="skills" value="Python, FastAPI, Docker, SQLAlchemy, Redis">
-        <label>Resume Text</label>
-        <textarea id="resumeText">Python backend engineer with FastAPI and SQLAlchemy experience.</textarea>
-        <label>Company</label>
-        <input id="company" value="Acme Corp">
-        <label>Job Description</label>
-        <textarea id="jobDescription">We need a Python backend engineer with FastAPI, SQLAlchemy, Redis, Docker, and API experience.</textarea>
-        <label>Recruiter Email</label>
-        <input id="recipient" value="recruiter@example.com">
-        <button type="submit">Generate Resume + Email Draft</button>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" value="test@example.com" placeholder="candidate@example.com" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="fullName" value="Test User" placeholder="John Doe" required>
+        </div>
+
+        <div class="form-group">
+          <label>Target Role</label>
+          <input type="text" id="targetRole" value="Backend Engineer" placeholder="e.g. Senior Backend Engineer" required>
+        </div>
+
+        <div class="form-group">
+          <label>Skills to Highlight (comma separated)</label>
+          <input type="text" id="skills" value="Python, FastAPI, Docker, SQLAlchemy, Redis" placeholder="e.g. Python, FastAPI, AWS">
+        </div>
+
+        <div class="form-group">
+          <label>Upload Resume (PDF, DOCX, TXT, MD)</label>
+          <div class="file-upload-container">
+            <span class="upload-icon">📁</span>
+            <div class="upload-text">Click to choose or drag & drop resume</div>
+            <div class="upload-hint">Accepts PDF, DOCX, TXT, MD up to 10MB</div>
+            <input type="file" id="resumeFile" accept=".pdf,.docx,.txt,.md">
+            <div class="file-selected-name" id="file-name-label">
+              <span>✓</span> <span id="file-name-text">No file selected</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Company</label>
+          <input type="text" id="company" value="Acme Corp" placeholder="e.g. Google, Stripe" required>
+        </div>
+
+        <div class="form-group">
+          <label>Job Description</label>
+          <textarea id="jobDescription" placeholder="Paste the job description here..." required>We need a Python backend engineer with FastAPI, SQLAlchemy, Redis, Docker, and API experience.</textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Recruiter Email</label>
+          <input type="email" id="recipient" value="recruiter@example.com" placeholder="recruiter@company.com" required>
+        </div>
+
+        <button type="submit" id="submit-btn">
+          <span>Generate Resume + Email Draft</span>
+        </button>
       </form>
-      <div id="status" class="status"></div>
+      <div id="status" class="status-message">Ready to optimize resume and draft outreach.</div>
     </section>
+
     <section>
       <h2>Draft Review</h2>
-      <div class="summary">
-        <div class="metric"><strong>Resume ID</strong><span id="resumeId">-</span></div>
-        <div class="metric"><strong>Job ID</strong><span id="jobId">-</span></div>
-        <div class="metric"><strong>ATS</strong><span id="ats">-</span></div>
-      </div>
-      <div id="emptyState" class="status">Submit the form to generate an optimized resume and email draft.</div>
-      <div id="review" class="review-grid" hidden>
-        <div class="review-panel">
-          <h3>Optimized Resume</h3>
-          <textarea id="optimizedResume"></textarea>
-          <div class="small-note">Edit this before approval if you want the human-reviewed version saved.</div>
+      <div class="summary-grid">
+        <div class="metric-card">
+          <strong>Resume ID</strong>
+          <span id="resumeId">-</span>
         </div>
-        <div class="review-panel">
-          <h3>Email Draft</h3>
-          <div class="email-meta">
+        <div class="metric-card">
+          <strong>Job ID</strong>
+          <span id="jobId">-</span>
+        </div>
+        <div class="metric-card ats-metric">
+          <strong>ATS Match</strong>
+          <span id="ats">-</span>
+        </div>
+      </div>
+
+      <div id="emptyState" class="empty-state">
+        <div class="empty-state-icon">📄</div>
+        <p>Submit the intake form to generate the tailored resume version and personalized email outreach.</p>
+      </div>
+
+      <div id="review" class="review-grid" hidden>
+        <div class="review-card">
+          <h3><span>✏️</span> Tailored Resume Text</h3>
+          <textarea id="optimizedResume"></textarea>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+            You can edit the resume draft directly above before human approval.
+          </div>
+        </div>
+
+        <div class="review-card">
+          <h3><span>✉️</span> Outreach Email Draft</h3>
+          <div class="email-meta-grid">
             <div>
               <label>To</label>
-              <input id="emailTo">
+              <input type="email" id="emailTo">
             </div>
             <div>
               <label>Subject</label>
-              <input id="emailSubject">
+              <input type="text" id="emailSubject">
             </div>
           </div>
           <label>Body</label>
           <textarea id="emailBody"></textarea>
         </div>
-        <div class="review-panel">
-          <h3>Review Signals</h3>
+
+        <div class="review-card">
+          <h3><span>📋</span> Review Signals & Verification</h3>
           <pre id="signals"></pre>
         </div>
-        <div class="actions">
+
+        <div class="actions-bar">
           <button id="approve" class="secondary" type="button">Approve Gate 3</button>
           <button id="send" class="success" type="button" disabled>Send Email</button>
         </div>
       </div>
     </section>
   </main>
+
   <script>
     const api = "/api/v1";
     let latest = null;
     let gate3Approved = false;
+
+    // Show name of selected file
+    document.getElementById("resumeFile").addEventListener("change", (e) => {
+      const label = document.getElementById("file-name-label");
+      const text = document.getElementById("file-name-text");
+      if (e.target.files && e.target.files.length > 0) {
+        text.textContent = e.target.files[0].name;
+        label.style.display = "flex";
+      } else {
+        label.style.display = "none";
+      }
+    });
 
     function csv(id) {
       return document.getElementById(id).value.split(",").map((item) => item.trim()).filter(Boolean);
@@ -232,11 +639,18 @@
     document.getElementById("workflow-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       const status = document.getElementById("status");
-      status.textContent = "Working...";
+      const submitBtn = document.getElementById("submit-btn");
+      
+      status.className = "status-message working";
+      status.innerHTML = '<div class="spinner"></div> Processing candidate profile and parsing resume...';
+      submitBtn.disabled = true;
+
       try {
         const email = document.getElementById("email").value;
         const fullName = document.getElementById("fullName").value;
         const skills = csv("skills");
+        
+        // 1. Create or Update Profile
         const profile = await post("/intake/profile", {
           email,
           full_name: fullName,
@@ -246,13 +660,47 @@
           experience_level: "mid",
           metadata: {}
         });
-        const resume = await post("/resume/upload", {
-          user_email: email,
-          full_name: fullName,
-          resume_text: document.getElementById("resumeText").value,
-          version_label: "dashboard",
-          metadata: {}
-        });
+
+        // 2. Parse and upload Resume File or Auto-generate baseline resume
+        const fileInput = document.getElementById("resumeFile");
+        let resume;
+
+        if (fileInput.files && fileInput.files.length > 0) {
+          const file = fileInput.files[0];
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("user_email", email);
+          formData.append("full_name", fullName);
+          formData.append("version_label", "dashboard");
+
+          status.innerHTML = '<div class="spinner"></div> Analyzing and parsing resume document...';
+          const resumeResponse = await fetch(api + "/resume/upload-file", {
+            method: "POST",
+            body: formData
+          });
+          if (!resumeResponse.ok) {
+            const errData = await resumeResponse.json();
+            throw new Error(errData.detail?.message || "Failed to parse and upload resume file.");
+          }
+          resume = await resumeResponse.json();
+        } else {
+          // Auto-generate baseline resume if no file is selected
+          status.innerHTML = '<div class="spinner"></div> Auto-generating baseline resume from skills...';
+          const skillsList = document.getElementById("skills").value;
+          const targetRoleVal = document.getElementById("targetRole").value;
+          const baselineText = `Resume of ${fullName}\n\nObjective: Seeking a challenging role as a ${targetRoleVal} where I can utilize my skills.\n\nSkills:\n${skillsList}\n\nProfessional Experience:\n- Freelance Developer / Independent projects matching target skills.`;
+
+          resume = await post("/resume/upload", {
+            user_email: email,
+            full_name: fullName,
+            resume_text: baselineText,
+            version_label: "auto-generated",
+            metadata: {"auto_generated": true}
+          });
+        }
+
+        // 3. Create Job Target
+        status.innerHTML = '<div class="spinner"></div> Storing job target and scheduling optimization...';
         const job = await post("/jobs/manual", {
           user_id: profile.user_id,
           company_name: document.getElementById("company").value,
@@ -261,19 +709,31 @@
           job_url: null,
           metadata: {}
         });
+
+        // 4. Run Optimization and Outreach Drafting
+        status.innerHTML = '<div class="spinner"></div> Personalizing resume facts and drafting email outreach...';
         latest = await post("/workflow/manual-optimize-draft", {
           resume_version_id: resume.resume_version_id,
           job_target_id: job.job_target_id,
           candidate_preference_id: profile.candidate_preference_id,
           recipient_email: document.getElementById("recipient").value
         });
+
         document.getElementById("resumeId").textContent = latest.resume_version_id;
         document.getElementById("jobId").textContent = latest.job_target_id;
-        document.getElementById("ats").textContent = latest.ats_score;
+        
+        // Show ATS Match as formatted percentage
+        const atsValue = Math.round(latest.ats_score * 100);
+        document.getElementById("ats").textContent = isNaN(atsValue) ? "-" : atsValue + "%";
+        
         renderDraft(latest);
-        status.textContent = "Draft ready for review.";
+        status.className = "status-message success";
+        status.textContent = "Workflow draft ready for human-in-the-loop review.";
       } catch (error) {
+        status.className = "status-message error";
         status.textContent = "Error: " + error.message;
+      } finally {
+        submitBtn.disabled = false;
       }
     });
 
@@ -299,40 +759,75 @@
 
     document.getElementById("approve").addEventListener("click", async () => {
       if (!latest) return;
-      const response = await post("/hitl/gate-3", {
-        session_id: latest.session_id,
-        approved: true,
-        reviewer_email: document.getElementById("email").value,
-        notes: "Approved from dashboard.",
-        edited_resume: document.getElementById("optimizedResume").value,
-        edited_email_subject: document.getElementById("emailSubject").value,
-        edited_email_body: document.getElementById("emailBody").value
-      });
-      latest.optimized_resume = document.getElementById("optimizedResume").value;
-      latest.email_draft.subject = document.getElementById("emailSubject").value;
-      latest.email_draft.body = document.getElementById("emailBody").value;
-      latest.email_draft.recipient_email = document.getElementById("emailTo").value;
-      gate3Approved = true;
-      document.getElementById("send").disabled = false;
-      document.getElementById("signals").textContent = JSON.stringify(response, null, 2);
-      document.getElementById("status").textContent = "Gate 3 approved.";
+      const status = document.getElementById("status");
+      status.className = "status-message working";
+      status.innerHTML = '<div class="spinner"></div> Submitting Gate 3 human review approval...';
+      
+      try {
+        const response = await post("/hitl/gate-3", {
+          session_id: latest.session_id,
+          approved: true,
+          reviewer_email: document.getElementById("email").value,
+          notes: "Approved from dashboard.",
+          edited_resume: document.getElementById("optimizedResume").value,
+          edited_email_subject: document.getElementById("emailSubject").value,
+          edited_email_body: document.getElementById("emailBody").value
+        });
+        
+        latest.optimized_resume = document.getElementById("optimizedResume").value;
+        latest.email_draft.subject = document.getElementById("emailSubject").value;
+        latest.email_draft.body = document.getElementById("emailBody").value;
+        latest.email_draft.recipient_email = document.getElementById("emailTo").value;
+        gate3Approved = true;
+        
+        document.getElementById("send").disabled = false;
+        document.getElementById("signals").textContent = JSON.stringify(response, null, 2);
+        status.className = "status-message success";
+        status.textContent = "Gate 3 approved. Email dispatch is now enabled.";
+      } catch (error) {
+        status.className = "status-message error";
+        status.textContent = "Approval failed: " + error.message;
+      }
     });
 
     document.getElementById("send").addEventListener("click", async () => {
       if (!latest || !gate3Approved) return;
-      const response = await post("/outreach/dispatch", {
-        recipient_email: document.getElementById("emailTo").value,
-        subject: document.getElementById("emailSubject").value,
-        body: document.getElementById("emailBody").value,
-        attachments: latest.email_draft?.attachments || [],
-        metadata: {
-          session_id: latest.session_id,
-          resume_version_id: latest.resume_version_id,
-          job_target_id: latest.job_target_id
+      const status = document.getElementById("status");
+      status.className = "status-message working";
+      status.innerHTML = '<div class="spinner"></div> Sending email outreach payload...';
+      
+      try {
+        const response = await post("/outreach/dispatch", {
+          recipient_email: document.getElementById("emailTo").value,
+          subject: document.getElementById("emailSubject").value,
+          body: document.getElementById("emailBody").value,
+          attachments: latest.email_draft?.attachments || [],
+          metadata: {
+            session_id: latest.session_id,
+            resume_version_id: latest.resume_version_id,
+            job_target_id: latest.job_target_id
+          }
+        });
+        
+        document.getElementById("signals").textContent = JSON.stringify(response, null, 2);
+        
+        if (response.status === "sent") {
+          status.className = "status-message success";
+          status.textContent = `Outreach email successfully sent via ${response.provider || 'SMTP'}!`;
+        } else if (response.status === "skipped_no_email_config") {
+          status.className = "status-message error";
+          status.textContent = `Email skipped: Please configure SMTP_HOST or Google OAuth credentials in your .env file.`;
+        } else if (response.status === "failed") {
+          status.className = "status-message error";
+          status.textContent = `Email dispatch failed: ${response.result?.error || response.error || 'Check server logs.'}`;
+        } else {
+          status.className = "status-message success";
+          status.textContent = `Email dispatch queued (Task ID: ${response.task_id}).`;
         }
-      });
-      document.getElementById("signals").textContent = JSON.stringify(response, null, 2);
-      document.getElementById("status").textContent = "Email dispatch queued.";
+      } catch (error) {
+        status.className = "status-message error";
+        status.textContent = "Outreach failed: " + error.message;
+      }
     });
   </script>
 </body>

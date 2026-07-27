@@ -1,170 +1,127 @@
+# File: src/workflow/tasks.py
+"""Celery task definitions for asynchronous outreach operations."""
+
 from __future__ import annotations
 
-<<<<<<< HEAD
-import asyncio
-import base64
-=======
 import base64
 from email.message import EmailMessage
 from pathlib import Path
->>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
 from typing import Any
+from uuid import uuid4
 
 from config.settings import get_settings
-from src.utils.pdf_compiler import PDFCompiler
-from src.utils.scraper_utils import retry_network
-from src.workflow.state import AgentState
 
 try:
     from celery import Celery
-except ImportError:  # pragma: no cover
+except Exception:  # pragma: no cover - import fallback for very small installs
+
+    class _TaskResult:
+        def __init__(self, task_id: str) -> None:
+            self.id = task_id
+
+    class _TaskWrapper:
+        def __init__(self, fn: Any) -> None:
+            self.fn = fn
+
+        def __call__(self, *args: Any, **kwargs: Any) -> Any:
+            return self.fn(*args, **kwargs)
+
+        def delay(self, *args: Any, **kwargs: Any) -> _TaskResult:
+            self.fn(*args, **kwargs)
+            return _TaskResult(str(uuid4()))
+
     class Celery:  # type: ignore[no-redef]
-        """Import-time Celery shim for environments without a worker dependency."""
+        def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+            pass
 
-        def __init__(self, *args: Any, **kwargs: Any) -> None:
-            self.args, self.kwargs = args, kwargs
-
-        def task(self, *args: Any, **kwargs: Any) -> Any:
-            def decorator(func: Any) -> Any:
-                func.delay = func
-                func.apply_async = lambda args=None, kwargs=None: func(*(args or ()), **(kwargs or {}))
-                return func
-            return decorator
-
-try:
-    from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-    from googleapiclient.errors import HttpError
-except ImportError:  # pragma: no cover
-    Credentials = None  # type: ignore[assignment]
-    build = None  # type: ignore[assignment]
-    HttpError = Exception  # type: ignore[assignment,misc]
+        def task(self, fn: Any | None = None, **_kwargs: Any) -> Any:
+            if fn is None:
+                return lambda wrapped: _TaskWrapper(wrapped)
+            return _TaskWrapper(fn)
 
 
 settings = get_settings()
-celery_app = Celery("resume_automation", broker=settings.celery_broker_url, backend=settings.celery_result_backend)
+celery_app = Celery(
+    "ai_resume_automation",
+    broker=settings.redis_url,
+    backend=settings.redis_url,
+)
+celery_app.conf.update(
+    task_always_eager=settings.celery_task_always_eager,
+    broker_connection_retry_on_startup=True
+)
 
 
-<<<<<<< HEAD
-@celery_app.task(name="render_workflow_documents_task")
-def render_workflow_documents_task(state_payload: dict[str, Any]) -> dict[str, Any]:
-    """Celery worker entrypoint for resume and cover-letter PDF generation."""
-
-    state = AgentState.model_validate(state_payload)
-    compiler = PDFCompiler()
-    paths: dict[str, str] = {"resume": str(compiler.compile_agent_state(state, "resume"))}
-    if state.cover_letter.strip():
-        paths["cover_letter"] = str(compiler.compile_agent_state(state, "cover_letter"))
-    return {"status": "rendered", "session_id": state.session_id, "paths": paths}
-
-
-def _raw_mime_payload(email_payload: dict[str, Any]) -> str:
-    """Validate and canonicalize a URL-safe Base64 MIME payload for Gmail."""
-
-    raw = email_payload.get("raw") or email_payload.get("base64_mime") or email_payload.get("mime_base64")
-    if not isinstance(raw, str) or not raw.strip():
-        raise ValueError("email_payload requires a Base64 MIME value in raw, base64_mime, or mime_base64.")
-    compact = raw.strip().replace("\n", "").replace("\r", "")
-    padded = compact + ("=" * (-len(compact) % 4))
-    try:
-        decoded = base64.urlsafe_b64decode(padded.encode("ascii"))
-    except (UnicodeEncodeError, ValueError) as exc:
-        raise ValueError("email_payload contains invalid Base64 MIME content.") from exc
-    return base64.urlsafe_b64encode(decoded).decode("ascii").rstrip("=")
-
-
-@retry_network(attempts=3, min_wait_seconds=1.0, max_wait_seconds=15.0)
-def _send_gmail_raw(raw_mime: str) -> dict[str, Any]:
-    """Send a prebuilt Base64 MIME message with Gmail's API."""
-
-    if Credentials is None or build is None:
-        raise RuntimeError("google-api-python-client is not installed.")
-    if not settings.google_client_id or not settings.google_client_secret or not settings.google_refresh_token:
-        raise RuntimeError("Google OAuth credentials are not configured for Gmail dispatch.")
-=======
 @celery_app.task(name="send_email_outreach_task")
 def send_email_outreach_task(email_payload: dict[str, Any]) -> dict[str, Any]:
-    """Send outreach email through Gmail when OAuth is configured."""
+    """Send an outreach email through SMTP or Gmail API, or return a setup hint if unconfigured."""
+    settings = get_settings()
 
-    if not _gmail_configured():
+    # 1. SMTP Fallback
+    if settings.smtp_host and settings.smtp_username and settings.smtp_password:
+        try:
+            import smtplib
+            message = _build_email_message(email_payload)
+            if "From" not in message:
+                message["From"] = settings.email_sender or settings.smtp_username
+
+            if settings.smtp_port == 465:
+                with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port) as server:
+                    server.login(settings.smtp_username, settings.smtp_password)
+                    server.send_message(message)
+            else:
+                with smtplib.SMTP(settings.smtp_host, settings.smtp_port or 587) as server:
+                    server.starttls()
+                    server.login(settings.smtp_username, settings.smtp_password)
+                    server.send_message(message)
+            return {"status": "sent", "provider": "smtp"}
+        except Exception as exc:
+            return {"status": "failed", "provider": "smtp", "error": str(exc)}
+
+    # 2. Gmail API OAuth
+    required = [
+        settings.google_client_id,
+        settings.google_client_secret,
+        settings.google_refresh_token,
+    ]
+    
+    def is_configured(val: str | None) -> bool:
+        if not val:
+            return False
+        return not any(placeholder in val.lower() for placeholder in ["your-client-id", "your-client-secret", "your-refresh-token"])
+
+    if not all(is_configured(val) for val in required):
         return {
-            "status": "skipped_no_google_oauth_config",
+            "status": "skipped_no_email_config",
             "payload": email_payload,
-            "message": "Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN to send real email.",
+            "message": "Configure SMTP settings or Google OAuth credentials to enable email sending.",
         }
 
     try:
-        service = _build_gmail_service()
-        message = _build_mime_message(email_payload)
-        result = service.users().messages().send(userId="me", body={"raw": message}).execute()
-    except Exception as exc:  # pragma: no cover - depends on Google API runtime
-        return {"status": "failed", "error": str(exc), "payload": email_payload}
+        from google.oauth2.credentials import Credentials
+        from googleapiclient.discovery import build
 
-    return {
-        "status": "sent",
-        "provider": "gmail",
-        "provider_message_id": result.get("id"),
-        "payload": email_payload,
-    }
-
-
-def _gmail_configured() -> bool:
-    return bool(settings.google_client_id and settings.google_client_secret and settings.google_refresh_token)
-
-
-def _build_gmail_service() -> Any:
-    from google.oauth2.credentials import Credentials
-    from googleapiclient.discovery import build
-
->>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
-    credentials = Credentials(
-        token=None,
-        refresh_token=settings.google_refresh_token,
-        token_uri="https://oauth2.googleapis.com/token",
-        client_id=settings.google_client_id,
-        client_secret=settings.google_client_secret,
-        scopes=["https://www.googleapis.com/auth/gmail.send"],
-    )
-<<<<<<< HEAD
-    response = build("gmail", "v1", credentials=credentials, cache_discovery=False).users().messages().send(
-        userId="me", body={"raw": raw_mime}
-    ).execute()
-    return {"id": response.get("id"), "thread_id": response.get("threadId")}
+        credentials = Credentials(
+            token=None,
+            refresh_token=settings.google_refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=settings.google_client_id,
+            client_secret=settings.google_client_secret,
+            scopes=["https://www.googleapis.com/auth/gmail.send"],
+        )
+        service = build("gmail", "v1", credentials=credentials)
+        message = _build_email_message(email_payload)
+        encoded_message = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
+        sent = service.users().messages().send(userId="me", body={"raw": encoded_message}).execute()
+        return {"status": "sent", "provider": "gmail", "provider_message_id": sent.get("id")}
+    except Exception as exc:  # pragma: no cover - depends on external Gmail service
+        return {"status": "failed", "provider": "gmail", "error": str(exc)}
 
 
-@celery_app.task(name="dispatch_gmail_task")
-def dispatch_gmail_task(email_payload: dict[str, Any]) -> dict[str, Any]:
-    """Send a Base64 MIME email through Gmail from a Celery worker."""
-
-    raw_mime = _raw_mime_payload(email_payload)
-    result = _send_gmail_raw(raw_mime)
-    return {"status": "sent", "gmail": result, "session_id": email_payload.get("session_id")}
-
-
-# Preserve the original task import path while performing real Gmail dispatch.
-send_email_outreach_task = dispatch_gmail_task
-
-
-async def enqueue_document_render(state: AgentState) -> str | None:
-    """Queue PDF rendering without blocking the FastAPI event loop."""
-
-    result = await asyncio.to_thread(render_workflow_documents_task.delay, state.model_dump(mode="json"))
-    return getattr(result, "id", None)
-
-
-async def enqueue_gmail_dispatch(email_payload: dict[str, Any]) -> str | None:
-    """Queue Gmail dispatch without blocking the FastAPI event loop."""
-
-    result = await asyncio.to_thread(dispatch_gmail_task.delay, email_payload)
-    return getattr(result, "id", None)
-=======
-    return build("gmail", "v1", credentials=credentials)
-
-
-def _build_mime_message(email_payload: dict[str, Any]) -> str:
+def _build_email_message(email_payload: dict[str, Any]) -> EmailMessage:
+    """Build a MIME email message from an outreach payload."""
     message = EmailMessage()
     message["To"] = str(email_payload["recipient_email"])
-    message["From"] = settings.email_sender
     message["Subject"] = str(email_payload["subject"])
     message.set_content(str(email_payload["body"]))
 
@@ -172,12 +129,16 @@ def _build_mime_message(email_payload: dict[str, Any]) -> str:
         path = Path(str(attachment))
         if not path.exists() or not path.is_file():
             continue
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(path)
+        if mime_type and "/" in mime_type:
+            maintype, subtype = mime_type.split("/", 1)
+        else:
+            maintype, subtype = "application", "octet-stream"
         message.add_attachment(
             path.read_bytes(),
-            maintype="application",
-            subtype="pdf" if path.suffix.lower() == ".pdf" else "octet-stream",
+            maintype=maintype,
+            subtype=subtype,
             filename=path.name,
         )
-
-    return base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
->>>>>>> bac5900d7d9b4ef2c0b5607ef1cf12e192b4817a
+    return message

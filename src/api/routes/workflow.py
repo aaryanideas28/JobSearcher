@@ -122,11 +122,22 @@ async def manual_optimize_and_draft(
         ],
     )
 
+    from src.utils.pdf_compiler import HTML
     GENERATED_DIR.mkdir(parents=True, exist_ok=True)
-    pdf_html = _resume_text_to_html(optimization.optimized_resume, job_target.role_title)
-    pdf_path = GENERATED_DIR / f"resume_v{resume_version.id}_job{job_target.id}.pdf"
-    PDFCompiler().compile_to_file(pdf_html, pdf_path)
-    email_payload.attachments.append(str(pdf_path))
+    
+    if HTML is not None:
+        pdf_html = _resume_text_to_html(optimization.optimized_resume, job_target.role_title)
+        pdf_path = GENERATED_DIR / f"resume_v{resume_version.id}_job{job_target.id}.pdf"
+        PDFCompiler().compile_to_file(pdf_html, pdf_path)
+        attached_path = pdf_path
+        document_type = "optimized_resume_pdf"
+    else:
+        txt_path = GENERATED_DIR / f"resume_v{resume_version.id}_job{job_target.id}.txt"
+        txt_path.write_text(optimization.optimized_resume, encoding="utf-8")
+        attached_path = txt_path
+        document_type = "optimized_resume_txt"
+
+    email_payload.attachments.append(str(attached_path))
 
     resume_version.optimized_text = optimization.optimized_resume
     resume_version.ats_score = ats_score.score
@@ -141,14 +152,16 @@ async def manual_optimize_and_draft(
     }
     resume_version.metadata_json = metadata
     db.add(resume_version)
+    
     generated_document = GeneratedDocument(
         user_id=resume_version.user_id,
         resume_version_id=resume_version.id,
-        document_type="optimized_resume_pdf",
-        file_path=str(pdf_path),
+        document_type=document_type,
+        file_path=str(attached_path),
         metadata_json={"job_target_id": job_target.id, "source": "manual_workflow"},
     )
     db.add(generated_document)
+    
     session_id = str(uuid4())
     workflow_session = WorkflowSession(
         id=session_id,
@@ -162,7 +175,7 @@ async def manual_optimize_and_draft(
             "ats_score": ats_score.score,
             "candidate_preference_id": preference.id if preference else None,
             "skills_to_highlight": selected_skills,
-            "generated_document_path": str(pdf_path),
+            "generated_document_path": str(attached_path),
         },
     )
     db.add(workflow_session)
@@ -179,8 +192,8 @@ async def manual_optimize_and_draft(
         "ats_score": ats_score.score,
         "ats_details": ats_score.details,
         "optimized_resume": optimization.optimized_resume,
-        "generated_pdf": str(pdf_path),
-        "change_summary": await optimizer.generate_change_summary(resume_version.raw_text, optimization.optimized_resume),
+        "generated_pdf": str(attached_path),
+        "change_summary": optimization.change_summary,
         "email_draft": asdict(email_payload),
         "quality_checks": {
             "hallucination_valid": hallucination.valid,
