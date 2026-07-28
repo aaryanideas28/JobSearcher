@@ -13,7 +13,11 @@ except ImportError:
         pass
 
 
-from src.config.settings import get_settings
+try:
+    from src.config.settings import get_settings
+except ImportError:
+    from config.settings import get_settings
+
 
 
 class ModelTier(StrEnum):
