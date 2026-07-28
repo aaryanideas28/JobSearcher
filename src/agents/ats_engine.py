@@ -1,19 +1,49 @@
+# File: src/agents/ats_engine.py
+"""Embedding-based semantic matching and regex ATS engine."""
+
 from __future__ import annotations
 
-import json
+import math
+import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Dict, List, Set
 
-from config.settings import get_settings
-from src.clients.ollama import OllamaClient
+from src.clients.embeddings import get_embedding
 from src.workflow.state import AgentState
 
-try:
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.metrics.pairwise import cosine_similarity
-except ImportError:  # pragma: no cover
-    TfidfVectorizer = None  # type: ignore[assignment]
-    cosine_similarity = None  # type: ignore[assignment]
+STOP_WORDS: Set[str] = {
+    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
+    "any", "are", "aren't", "as", "at", "be", "because", "been", "before", "being",
+    "below", "between", "both", "but", "by", "can", "cannot", "could", "couldn't",
+    "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during",
+    "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't",
+    "have", "haven't", "having", "he", "hed", "hell", "hes", "her", "here",
+    "heres", "hers", "herself", "him", "himself", "his", "how", "hows", "i",
+    "id", "ill", "im", "ive", "if", "in", "into", "is", "isn't", "it", "its",
+    "itself", "lets", "me", "more", "most", "mustn't", "my", "myself", "no",
+    "nor", "not", "of", "off", "on", "once", "only", "or", "other", "ought",
+    "our", "ours", "ourselves", "out", "over", "own", "same", "shan't", "she",
+    "shed", "shell", "shes", "should", "shouldn't", "so", "some", "such", "than",
+    "that", "thats", "the", "their", "theirs", "them", "themselves", "then",
+    "there", "theres", "these", "they", "theyd", "theyll", "theyre", "theyve",
+    "this", "those", "through", "to", "too", "under", "until", "up", "very",
+    "was", "wasn't", "we", "wed", "well", "were", "weren't", "weve", "what",
+    "whats", "whatever", "when", "whens", "where", "wheres", "which", "while",
+    "who", "whos", "whom", "why", "whys", "with", "won't", "would", "wouldn't",
+    "you", "youd", "youll", "youre", "youve", "your", "yours", "yourself", "yourselves"
+}
+
+
+def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
+    """Compute cosine similarity between two float vectors."""
+    if not vec1 or not vec2 or len(vec1) != len(vec2):
+        return 0.0
+    dot = sum(a * b for a, b in zip(vec1, vec2))
+    norm1 = math.sqrt(sum(a * a for a in vec1))
+    norm2 = math.sqrt(sum(b * b for b in vec2))
+    if norm1 == 0.0 or norm2 == 0.0:
+        return 0.0
+    return max(0.0, min(1.0, dot / (norm1 * norm2)))
 
 
 @dataclass(slots=True)
@@ -22,84 +52,115 @@ class ATSScore:
 
     score: float
     method: str
-    details: dict[str, Any]
+    details: Dict[str, Any]
+
+    def __getitem__(self, key: str) -> Any:
+        if key == "overall_score":
+            return self.score
+        return self.details.get(key)
 
 
 class ATSEngine:
-    """Analyze resume/job fit with deterministic similarity and local Ollama analysis."""
+    """Analyze resume and job description using regex keyword matching and embedding cosine similarity."""
 
-    def __init__(self, llm_client: OllamaClient | None = None) -> None:
-        self.llm_client = llm_client or OllamaClient()
+    def __init__(self, llm_client: Any = None) -> None:
+        self.llm_client = llm_client
 
-    def score_with_tfidf(self, resume_text: str, job_description: str) -> ATSScore:
+    def calculate_ats_score(self, resume_text: str, job_description: str) -> Dict[str, Any]:
+        """Compute hybrid ATS score and return strict JSON-compatible dictionary."""
         if not resume_text.strip() or not job_description.strip():
-            return ATSScore(0.0, "tfidf", {"reason": "empty_input"})
-        if TfidfVectorizer is None or cosine_similarity is None:
-            return ATSScore(self._score_with_token_overlap(resume_text, job_description), "token_overlap_fallback", {"reason": "sklearn_unavailable"})
-        matrix = TfidfVectorizer(stop_words="english").fit_transform([resume_text, job_description])
-        return ATSScore(round(float(cosine_similarity(matrix[0:1], matrix[1:2])[0][0]), 4), "tfidf", {})
+            return {
+                "overall_score": 0.0,
+                "missing_keywords": [],
+                "semantic_gaps": [],
+            }
 
-    async def score_with_llm(self, resume_text: str, job_description: str) -> ATSScore:
-        """Ask llama3 for keyword gaps and ATS-safe formatting issues as JSON."""
+        # 1. Regex Keyword Extraction & Matching
+        jd_keywords = self._extract_keywords(job_description)
+        resume_keywords = self._extract_keywords(resume_text)
 
-        if not resume_text.strip() or not job_description.strip():
-            return ATSScore(0.0, "llm", {"reason": "empty_input"})
-        prompt = (
-            "Compare the resume to the job description for ATS fit. Return JSON only with: "
-            "score (number 0..1), matched_keywords (array), missing_keywords (array), "
-            "formatting_issues (array), recommendations (array). Do not invent candidate experience.\n\n"
-            f"RESUME:\n{resume_text}\n\nJOB DESCRIPTION:\n{job_description}"
-        )
-        generation = await self.llm_client.generate(
-            model=get_settings().llm_model_name,
-            prompt=prompt,
-            system="You are an ATS analyst. Provide concise evidence-based JSON.",
-            json_mode=True,
-        )
-        payload = self._parse_json(generation.text)
-        score = self._normalise_score(payload.get("score")) if payload else 0.0
-        details = payload or {"reason": "invalid_or_unavailable_llm_response"}
-        details["llm"] = generation.metadata
-        details["used_fallback"] = generation.used_fallback
-        return ATSScore(score, "llm_keyword_gap_analysis", details)
+        if jd_keywords:
+            matched_keywords = jd_keywords & resume_keywords
+            missing_keywords = sorted(list(jd_keywords - resume_keywords))
+            keyword_score = len(matched_keywords) / len(jd_keywords)
+        else:
+            missing_keywords = []
+            keyword_score = 1.0
+
+        # 2. Semantic Bullet-Point Matching via Embeddings
+        jd_bullets = self._extract_bullets(job_description)
+        resume_bullets = self._extract_bullets(resume_text)
+
+        if not resume_bullets:
+            resume_bullets = [resume_text]
+
+        resume_embeddings = [get_embedding(bullet) for bullet in resume_bullets]
+        full_resume_emb = get_embedding(resume_text)
+
+        semantic_scores: List[float] = []
+        semantic_gaps: List[Dict[str, Any]] = []
+
+        for req in jd_bullets:
+            req_emb = get_embedding(req)
+            sims = [cosine_similarity(req_emb, r_emb) for r_emb in resume_embeddings]
+            sims.append(cosine_similarity(req_emb, full_resume_emb))
+            max_sim = max(sims) if sims else 0.0
+            semantic_scores.append(max_sim)
+
+            if max_sim < 0.70:
+                semantic_gaps.append({
+                    "requirement": req,
+                    "similarity": round(max_sim, 4),
+                })
+
+        semantic_gaps.sort(key=lambda g: g["similarity"])
+        semantic_score = (sum(semantic_scores) / len(semantic_scores)) if semantic_scores else 1.0
+
+        # 3. Hybrid Combined Score
+        overall_score = round(0.4 * keyword_score + 0.6 * semantic_score, 4)
+
+        return {
+            "overall_score": max(0.0, min(1.0, overall_score)),
+            "missing_keywords": missing_keywords,
+            "semantic_gaps": semantic_gaps,
+        }
 
     async def combined_score(self, resume_text: str, job_description: str) -> ATSScore:
-        tfidf_score = self.score_with_tfidf(resume_text, job_description)
-        llm_score = await self.score_with_llm(resume_text, job_description)
+        """Async entry point returning ATSScore dataclass containing the JSON payload details."""
+        details = self.calculate_ats_score(resume_text, job_description)
         return ATSScore(
-            round((tfidf_score.score * 0.7) + (llm_score.score * 0.3), 4),
-            "weighted_tfidf_llm",
-            {"tfidf": tfidf_score.details, "llm": llm_score.details, "tfidf_score": tfidf_score.score, "llm_score": llm_score.score},
+            score=details["overall_score"],
+            method="hybrid_embedding_regex",
+            details=details,
         )
 
     async def run(self, state: AgentState) -> AgentState:
-        """Write ATS analysis and score into the shared workflow state."""
-
-        resume = state.optimized_resume or state.resume_text
-        score = await self.combined_score(resume, state.job_description)
-        state.ats_score = score.score
-        state.matching_score = score.score
-        state.metadata["ats_analysis"] = score.details
-        state.workflow_status = "ats_analyzed"
+        """Write ATS analysis and score into shared workflow state."""
+        resume = state.get("optimized_resume") or state.get("resume_text") or ""
+        job_desc = state.get("job_description") or ""
+        score = await self.combined_score(resume, job_desc)
+        state["ats_score"] = score.score
+        state["matching_score"] = score.score
+        state.setdefault("metadata", {})["ats_analysis"] = score.details
+        state["workflow_status"] = "ats_analyzed"
         return state
 
-    @staticmethod
-    def _parse_json(text: str) -> dict[str, Any]:
-        try:
-            parsed = json.loads(text)
-            return parsed if isinstance(parsed, dict) else {}
-        except json.JSONDecodeError:
-            return {}
+    def _extract_keywords(self, text: str) -> Set[str]:
+        """Regex tokenization (lowercase, normalize) to extract meaningful keywords."""
+        raw_tokens = re.findall(r"\b[a-zA-Z0-9+#.-]+\b", text.lower())
+        keywords = set()
+        for token in raw_tokens:
+            cleaned = token.strip(".-")
+            if len(cleaned) >= 2 and cleaned not in STOP_WORDS:
+                keywords.add(cleaned)
+        return keywords
 
-    @staticmethod
-    def _normalise_score(value: Any) -> float:
-        try:
-            score = float(value)
-        except (TypeError, ValueError):
-            return 0.0
-        return max(0.0, min(score / 100 if score > 1 else score, 1.0))
-
-    @staticmethod
-    def _score_with_token_overlap(resume_text: str, job_description: str) -> float:
-        resume_tokens, job_tokens = set(resume_text.lower().split()), set(job_description.lower().split())
-        return round(len(resume_tokens & job_tokens) / len(job_tokens), 4) if job_tokens else 0.0
+    def _extract_bullets(self, text: str) -> List[str]:
+        """Split text into distinct bullet points or requirement statements."""
+        lines = text.splitlines()
+        bullets = []
+        for line in lines:
+            cleaned = re.sub(r"^[\s•\-\*\d\.\)]+", "", line).strip()
+            if len(cleaned) > 10:
+                bullets.append(cleaned)
+        return bullets if bullets else [text.strip()]
