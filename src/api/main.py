@@ -32,7 +32,10 @@ app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs"])
 app.include_router(workflow.router, prefix="/api/v1/workflow", tags=["workflow"])
 app.include_router(hitl.router, prefix="/api/v1/hitl", tags=["human-in-the-loop"])
 app.include_router(outreach.router, prefix="/api/v1/outreach", tags=["outreach"])
+from fastapi.staticfiles import StaticFiles
+
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
+app.mount("/static", StaticFiles(directory="storage_workspace"), name="static")
 
 
 @app.get("/", tags=["root"])

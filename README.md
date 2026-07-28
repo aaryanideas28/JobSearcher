@@ -31,11 +31,11 @@ Start PostgreSQL and Redis:
 docker compose up -d
 ```
 
-Run the API:
+Run the API (execute from the project root directory):
 
 ```powershell
-uvicorn src.api.mai
-
+uvicorn src.api.main:app --reload
+```
 Open:
 
 - API health: `http://localhost:8000/health`
@@ -51,6 +51,8 @@ python -c "from database.connection import init_db; init_db()"
 
 The equivalent PostgreSQL DDL lives in `database/schema.sql`.
 
+http://localhost:8000/dashboard 
+
 ## Tests
 
 Run:
@@ -64,3 +66,4 @@ If Windows resolves `python` to the Store alias, use your virtual environment ex
 ```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
+.venv\Scripts\activate

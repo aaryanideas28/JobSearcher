@@ -27,7 +27,7 @@ class OutreachDispatchRequest(BaseModel):
 @router.post("/dispatch")
 def dispatch_outreach(payload: OutreachDispatchRequest) -> dict[str, Any]:
     """Queue or execute an outreach email dispatch."""
-    from config.settings import get_settings
+    from src.config.settings import get_settings
     settings = get_settings()
     email_payload = payload.model_dump()
 

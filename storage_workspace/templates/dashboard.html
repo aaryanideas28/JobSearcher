@@ -332,9 +332,12 @@
 
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr;
       gap: 12px;
       margin-bottom: 24px;
+      max-width: 240px;
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .metric-card {
@@ -521,23 +524,9 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Company</label>
-          <input type="text" id="company" value="Acme Corp" placeholder="e.g. Google, Stripe" required>
-        </div>
-
-        <div class="form-group">
-          <label>Job Description</label>
-          <textarea id="jobDescription" placeholder="Paste the job description here..." required>We need a Python backend engineer with FastAPI, SQLAlchemy, Redis, Docker, and API experience.</textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Recruiter Email</label>
-          <input type="email" id="recipient" value="recruiter@example.com" placeholder="recruiter@company.com" required>
-        </div>
-
+        <!-- Manual job description inputs removed. Automated search is active. -->
         <button type="submit" id="submit-btn">
-          <span>Generate Resume + Email Draft</span>
+          <span>Search Target Jobs (via Tavily)</span>
         </button>
       </form>
       <div id="status" class="status-message">Ready to optimize resume and draft outreach.</div>
@@ -546,14 +535,6 @@
     <section>
       <h2>Draft Review</h2>
       <div class="summary-grid">
-        <div class="metric-card">
-          <strong>Resume ID</strong>
-          <span id="resumeId">-</span>
-        </div>
-        <div class="metric-card">
-          <strong>Job ID</strong>
-          <span id="jobId">-</span>
-        </div>
         <div class="metric-card ats-metric">
           <strong>ATS Match</strong>
           <span id="ats">-</span>
@@ -562,12 +543,25 @@
 
       <div id="emptyState" class="empty-state">
         <div class="empty-state-icon">📄</div>
-        <p>Submit the intake form to generate the tailored resume version and personalized email outreach.</p>
+        <p>Submit the intake form to search target roles and view automated job discovery matches.</p>
+      </div>
+
+      <div id="discoveredJobsSection" style="margin-top: 16px; margin-bottom: 24px;" hidden>
+        <h3 style="margin-bottom: 12px; color: var(--text-primary);">🔍 Discovered Jobs (via Tavily & Async Scraper)</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+          The system queried target jobs matching your target role and skills and parsed the postings. Select one to optimize your resume and draft outreach:
+        </p>
+        <div id="jobCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+          <!-- JS will populate cards here -->
+        </div>
       </div>
 
       <div id="review" class="review-grid" hidden>
         <div class="review-card">
-          <h3><span>✏️</span> Tailored Resume Text</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h3 style="margin: 0;"><span>✏️</span> Tailored Resume Text</h3>
+            <a id="downloadResumeLink" href="#" target="_blank" style="display: none; padding: 6px 12px; background: var(--accent); color: white; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">📥 Download DOCX</a>
+          </div>
           <textarea id="optimizedResume"></textarea>
           <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
             You can edit the resume draft directly above before human approval.
@@ -588,11 +582,6 @@
           </div>
           <label>Body</label>
           <textarea id="emailBody"></textarea>
-        </div>
-
-        <div class="review-card">
-          <h3><span>📋</span> Review Signals & Verification</h3>
-          <pre id="signals"></pre>
         </div>
 
         <div class="actions-bar">
@@ -636,20 +625,92 @@
       return response.json();
     }
 
+    function renderJobCards(jobTargets, resumeId, profileId, email) {
+      const grid = document.getElementById("jobCardsGrid");
+      grid.innerHTML = "";
+
+      if (!jobTargets || jobTargets.length === 0) {
+        grid.innerHTML = "<div style='color: var(--text-muted); font-size: 14px;'>No jobs discovered. Ensure TAVILY_API_KEY is configured in your .env.</div>";
+        return;
+      }
+
+      jobTargets.forEach(job => {
+        const card = document.createElement("div");
+        card.style.background = "rgba(30, 41, 59, 0.5)";
+        card.style.border = "1px solid rgba(255, 255, 255, 0.08)";
+        card.style.borderRadius = "12px";
+        card.style.padding = "16px";
+        card.style.display = "flex";
+        card.style.flexDirection = "column";
+        card.style.justifyContent = "space-between";
+        card.style.textAlign = "left";
+
+        const title = job.title || "Untitled Role";
+        const company = job.company || "Unknown Company";
+        const desc = job.description ? (job.description.substring(0, 160) + "...") : "No description available.";
+        const skillsStr = job.extracted_skills && job.extracted_skills.length > 0 
+          ? job.extracted_skills.join(", ") 
+          : "None matching";
+
+        card.innerHTML = `
+          <div style="flex-grow: 1; margin-bottom: 12px;">
+            <h4 style="margin: 0 0 4px 0; color: #f3f4f6; font-size: 15px; font-weight: 600;">${title}</h4>
+            <div style="font-size: 12px; color: var(--accent); font-weight: 500; margin-bottom: 8px;">🏢 ${company}</div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">${desc}</p>
+            <div style="font-size: 11px; color: #9ca3af;"><strong>Required skills:</strong> ${skillsStr}</div>
+          </div>
+          <button class="select-job-btn success" style="width: 100%; font-size: 12px; padding: 8px 0;" type="button">Select & Optimize</button>
+        `;
+
+        card.querySelector(".select-job-btn").addEventListener("click", async () => {
+          const status = document.getElementById("status");
+          status.className = "status-message working";
+          status.innerHTML = `<div class="spinner"></div> Optimizing resume and drafting email outreach for ${title} at ${company}...`;
+
+          try {
+            latest = await post("/workflow/manual-optimize-draft", {
+              resume_version_id: resumeId,
+              job_target_id: job.job_id,
+              candidate_preference_id: profileId,
+              recipient_email: "recruiter@" + company.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com"
+            });
+
+            const atsValue = Math.round(latest.ats_score * 100);
+            document.getElementById("ats").textContent = isNaN(atsValue) ? "-" : atsValue + "%";
+
+            renderDraft(latest);
+            status.className = "status-message success";
+            status.textContent = `Draft ready for ${title} at ${company}!`;
+          } catch (err) {
+            status.className = "status-message error";
+            status.textContent = "Error during optimization: " + err.message;
+          }
+        });
+
+        grid.appendChild(card);
+      });
+
+      document.getElementById("discoveredJobsSection").hidden = false;
+    }
+
     document.getElementById("workflow-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       const status = document.getElementById("status");
       const submitBtn = document.getElementById("submit-btn");
-      
+
       status.className = "status-message working";
-      status.innerHTML = '<div class="spinner"></div> Processing candidate profile and parsing resume...';
+      status.innerHTML = '<div class="spinner"></div> Submitting profile and initiating automated job search...';
       submitBtn.disabled = true;
+
+      // Hide previous results
+      document.getElementById("discoveredJobsSection").hidden = true;
+      document.getElementById("review").hidden = true;
 
       try {
         const email = document.getElementById("email").value;
         const fullName = document.getElementById("fullName").value;
         const skills = csv("skills");
-        
+
         // 1. Create or Update Profile
         const profile = await post("/intake/profile", {
           email,
@@ -673,19 +734,27 @@
           formData.append("full_name", fullName);
           formData.append("version_label", "dashboard");
 
-          status.innerHTML = '<div class="spinner"></div> Analyzing and parsing resume document...';
+          status.innerHTML = '<div class="spinner"></div> Uploading resume, searching jobs via Tavily & async scraping...';
           const resumeResponse = await fetch(api + "/resume/upload-file", {
             method: "POST",
             body: formData
           });
           if (!resumeResponse.ok) {
-            const errData = await resumeResponse.json();
-            throw new Error(errData.detail?.message || "Failed to parse and upload resume file.");
+            let errMsg = "Failed to parse and upload resume file.";
+            try {
+              const errData = await resumeResponse.json();
+              errMsg = errData.detail?.message || errData.detail || errMsg;
+            } catch (_) {
+              try {
+                errMsg = await resumeResponse.text();
+              } catch (_) {}
+            }
+            throw new Error(errMsg);
           }
           resume = await resumeResponse.json();
         } else {
           // Auto-generate baseline resume if no file is selected
-          status.innerHTML = '<div class="spinner"></div> Auto-generating baseline resume from skills...';
+          status.innerHTML = '<div class="spinner"></div> Auto-generating baseline resume & searching jobs...';
           const skillsList = document.getElementById("skills").value;
           const targetRoleVal = document.getElementById("targetRole").value;
           const baselineText = `Resume of ${fullName}\n\nObjective: Seeking a challenging role as a ${targetRoleVal} where I can utilize my skills.\n\nSkills:\n${skillsList}\n\nProfessional Experience:\n- Freelance Developer / Independent projects matching target skills.`;
@@ -699,36 +768,11 @@
           });
         }
 
-        // 3. Create Job Target
-        status.innerHTML = '<div class="spinner"></div> Storing job target and scheduling optimization...';
-        const job = await post("/jobs/manual", {
-          user_id: profile.user_id,
-          company_name: document.getElementById("company").value,
-          role_title: document.getElementById("targetRole").value,
-          job_description: document.getElementById("jobDescription").value,
-          job_url: null,
-          metadata: {}
-        });
-
-        // 4. Run Optimization and Outreach Drafting
-        status.innerHTML = '<div class="spinner"></div> Personalizing resume facts and drafting email outreach...';
-        latest = await post("/workflow/manual-optimize-draft", {
-          resume_version_id: resume.resume_version_id,
-          job_target_id: job.job_target_id,
-          candidate_preference_id: profile.candidate_preference_id,
-          recipient_email: document.getElementById("recipient").value
-        });
-
-        document.getElementById("resumeId").textContent = latest.resume_version_id;
-        document.getElementById("jobId").textContent = latest.job_target_id;
+        // Render discovered jobs for user selection
+        renderJobCards(resume.job_targets, resume.resume_version_id, profile.candidate_preference_id, email);
         
-        // Show ATS Match as formatted percentage
-        const atsValue = Math.round(latest.ats_score * 100);
-        document.getElementById("ats").textContent = isNaN(atsValue) ? "-" : atsValue + "%";
-        
-        renderDraft(latest);
         status.className = "status-message success";
-        status.textContent = "Workflow draft ready for human-in-the-loop review.";
+        status.textContent = `Discovered ${resume.job_targets ? resume.job_targets.length : 0} target jobs matching your profile! Select one below to proceed.`;
       } catch (error) {
         status.className = "status-message error";
         status.textContent = "Error: " + error.message;
@@ -746,15 +790,17 @@
       document.getElementById("emailTo").value = result.email_draft?.recipient_email || "";
       document.getElementById("emailSubject").value = result.email_draft?.subject || "";
       document.getElementById("emailBody").value = result.email_draft?.body || "";
-      document.getElementById("signals").textContent = JSON.stringify({
-        status: result.status,
-        session_id: result.session_id,
-        routing: result.routing,
-        skills_to_highlight: result.skills_to_highlight,
-        generated_pdf: result.generated_pdf,
-        quality_checks: result.quality_checks,
-        hitl_gate: result.hitl_gate?.message
-      }, null, 2);
+
+      if (result.resume_version_id) {
+        const downloadUrl = api + "/resume/download/" + result.resume_version_id;
+        const link = document.getElementById("downloadResumeLink");
+        link.href = downloadUrl;
+        link.style.display = "inline-block";
+        link.textContent = "📥 Download DOCX";
+      } else {
+        document.getElementById("downloadResumeLink").style.display = "none";
+      }
+
     }
 
     document.getElementById("approve").addEventListener("click", async () => {
@@ -781,7 +827,6 @@
         gate3Approved = true;
         
         document.getElementById("send").disabled = false;
-        document.getElementById("signals").textContent = JSON.stringify(response, null, 2);
         status.className = "status-message success";
         status.textContent = "Gate 3 approved. Email dispatch is now enabled.";
       } catch (error) {
@@ -808,8 +853,6 @@
             job_target_id: latest.job_target_id
           }
         });
-        
-        document.getElementById("signals").textContent = JSON.stringify(response, null, 2);
         
         if (response.status === "sent") {
           status.className = "status-message success";

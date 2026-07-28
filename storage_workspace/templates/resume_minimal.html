@@ -7,71 +7,202 @@
   <style>
     @page {
       size: A4;
-      margin: 0.7in;
+      margin: 0.6in;
     }
 
     body {
-      color: #111827;
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 11pt;
-      line-height: 1.45;
+      color: #1f2937;
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
     }
 
     header {
       border-bottom: 2px solid #2563eb;
-      margin-bottom: 18px;
+      margin-bottom: 15px;
       padding-bottom: 10px;
     }
 
-    h1 {
-      font-size: 22pt;
-      margin: 0;
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
     }
 
-    h2 {
-      color: #1d4ed8;
-      font-size: 13pt;
-      margin: 18px 0 8px;
-      text-transform: uppercase;
+    h1 {
+      color: #111827;
+      font-size: 20pt;
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: -0.025em;
     }
 
     .contact {
       color: #4b5563;
-      margin-top: 4px;
+      font-size: 9.5pt;
+      margin-top: 5px;
     }
 
-    .resume-body {
+    h2 {
+      color: #2563eb;
+      font-size: 11pt;
+      font-weight: 600;
+      margin: 15px 0 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 3px;
+    }
+
+    .summary-text {
+      color: #374151;
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+
+    .skills-list {
+      color: #374151;
+      margin-bottom: 10px;
+    }
+
+    .skill-tag {
+      display: inline-block;
+      background-color: #f3f4f6;
+      color: #1f2937;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 8.5pt;
+      margin-right: 4px;
+      margin-bottom: 4px;
+    }
+
+    .item {
+      margin-bottom: 10px;
+    }
+
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .item-sub {
+      display: flex;
+      justify-content: space-between;
+      color: #4b5563;
+      font-style: italic;
+      font-size: 9pt;
+      margin-bottom: 3px;
+    }
+
+    .item-description {
+      color: #374151;
       white-space: pre-wrap;
+      padding-left: 10px;
+      border-left: 2px solid #e5e7eb;
     }
 
     .metadata {
-      color: #6b7280;
-      font-size: 9pt;
-      margin-top: 24px;
+      color: #9ca3af;
+      font-size: 8pt;
+      margin-top: 20px;
+      text-align: center;
+      border-top: 1px solid #f3f4f6;
+      padding-top: 5px;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>{{ full_name | default("Candidate") }}</h1>
-    <div class="contact">
-      {% if email %}{{ email }}{% endif %}
-      {% if phone %} · {{ phone }}{% endif %}
-      {% if location %} · {{ location }}{% endif %}
+    <div class="header-content">
+      <div>
+        <h1>{{ full_name | default("Candidate") }}</h1>
+        <div class="contact">
+          {% if email %}{{ email }}{% endif %}
+          {% if phone %} · {{ phone }}{% endif %}
+          {% if location %} · {{ location }}{% endif %}
+        </div>
+      </div>
     </div>
   </header>
 
   <main>
+    {% if summary %}
     <section>
-      <h2>Optimized Resume</h2>
-      <div class="resume-body">{{ resume_text | default("") }}</div>
+      <h2>Professional Summary</h2>
+      <div class="summary-text">{{ summary }}</div>
     </section>
+    {% endif %}
+
+    {% if skills %}
+    <section>
+      <h2>Technical Skills</h2>
+      <div class="skills-list">
+        {% for skill in skills %}
+        <span class="skill-tag">{{ skill }}</span>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if experience %}
+    <section>
+      <h2>Professional Experience</h2>
+      {% for exp in experience %}
+      <div class="item">
+        <div class="item-header">
+          <span>{{ exp.role | default(exp.title) }}</span>
+          <span>{{ exp.dates | default("") }}</span>
+        </div>
+        <div class="item-sub">
+          <span>{{ exp.company }}</span>
+          {% if exp.location %}<span>{{ exp.location }}</span>{% endif %}
+        </div>
+        {% if exp.description %}
+        <div class="item-description">{{ exp.description }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if education %}
+    <section>
+      <h2>Education</h2>
+      {% for edu in education %}
+      <div class="item">
+        <div class="item-header">
+          <span>{{ edu.institution | default(edu.school) }}</span>
+          <span>{% if edu.start_date or edu.end_date %}{{ edu.start_date | default("") }} - {{ edu.end_date | default("") }}{% endif %}</span>
+        </div>
+        <div class="item-sub">
+          <span>{{ edu.degree | default(edu.major) }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if projects %}
+    <section>
+      <h2>Projects</h2>
+      {% for proj in projects %}
+      <div class="item">
+        <div class="item-header">
+          <span>{{ proj.name }}</span>
+        </div>
+        <div class="item-description">{{ proj.description }}</div>
+      </div>
+      {% endfor %}
+    </section>
+    {% endif %}
 
     {% if target_role or target_company %}
     <section class="metadata">
-      Target:
-      {% if target_role %}{{ target_role }}{% endif %}
-      {% if target_company %} at {{ target_company }}{% endif %}
+      Targeted Role: {% if target_role %}{{ target_role }}{% endif %}{% if target_company %} at {{ target_company }}{% endif %}
     </section>
     {% endif %}
   </main>

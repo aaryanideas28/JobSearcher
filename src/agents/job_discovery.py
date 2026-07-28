@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from config.settings import get_settings
+from src.config.settings import get_settings
 
 
 @dataclass(slots=True)
@@ -45,10 +45,15 @@ class JobDiscoveryAgent:
             "include_raw_content": True,
         }
 
-        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
-            response = await client.post("https://api.tavily.com/search", json=payload)
-            response.raise_for_status()
-            data = response.json()
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+                response = await client.post("https://api.tavily.com/search", json=payload)
+                response.raise_for_status()
+                data = response.json()
+        except Exception as exc:
+            import sys
+            print(f"Tavily search failed: {exc}", file=sys.stderr)
+            return []
 
         postings: list[JobPosting] = []
         for item in data.get("results", []):
@@ -75,8 +80,26 @@ class JobDiscoveryAgent:
             return response.text
 
     async def discover(self, query: str, max_results: int = 5) -> list[JobPosting]:
-        """Discover jobs using the configured provider."""
-        return await self.search_tavily(query=query, max_results=max_results)
+        """Discover jobs using the configured provider and enrich details asynchronously."""
+        postings = await self.search_tavily(query=query, max_results=max_results)
+
+        import asyncio
+        import re
+
+        async def enrich(posting: JobPosting):
+            if posting.url and len(posting.description) < 250:
+                try:
+                    text = await self.scrape_job_page(posting.url)
+                    if text:
+                        clean_text = re.sub(r'<[^>]+>', ' ', text)
+                        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+                        if len(clean_text) > len(posting.description):
+                            posting.description = clean_text[:2000]
+                except Exception:
+                    pass
+
+        await asyncio.gather(*(enrich(p) for p in postings))
+        return postings
 
     def _infer_company(self, title: str) -> str:
         """Best-effort company name extraction from a search result title."""

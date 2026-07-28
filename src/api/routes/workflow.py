@@ -10,14 +10,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from database.models import CandidatePreference, GeneratedDocument, JobTarget, ResumeVersion, WorkflowSession
+from src.database.models import CandidatePreference, GeneratedDocument, JobTarget, ResumeVersion, WorkflowSession
 from src.agents.ats_engine import ATSEngine
-from src.agents.optimizer import ResumeOptimizer
+from src.agents.optimizer import ResumeOptimizer, OptimizationResult
 from src.agents.outreach import OutreachAgent
 from src.api.dependencies import get_db
 from src.clients.ollama import OllamaClient
 from src.security.validation import HallucinationDetector, PromptInjectionGuard
-from src.utils.pdf_compiler import PDFCompiler
+from src.utils.docx_compiler import DocxCompiler
 
 router = APIRouter()
 GENERATED_DIR = Path("storage_workspace/generated")
@@ -85,12 +85,22 @@ async def manual_optimize_and_draft(
     ats_engine = ATSEngine()
     outreach_agent = OutreachAgent()
 
-    optimization = await optimizer.optimize_resume(
-        resume_text=resume_version.raw_text,
-        job_description=job_target.job_description,
-        skills_to_highlight=selected_skills,
-        target_role=target_role,
-    )
+    if not resume_version.raw_text or not resume_version.raw_text.strip():
+        # Synthesize a structured JSON resume from skills if no baseline exists
+        resume_dict = await optimizer.build_resume_from_skills(selected_skills, target_role)
+        import json
+        optimization = OptimizationResult(
+            optimized_resume=json.dumps(resume_dict, indent=2),
+            change_summary=["Synthesized structured resume from user skills and target role."],
+            metadata={"routing": {"model_tier": "large", "model_name": "huggingface", "reason": "No baseline resume upload"}},
+        )
+    else:
+        optimization = await optimizer.optimize_resume(
+            resume_text=resume_version.raw_text,
+            job_description=job_target.job_description,
+            skills_to_highlight=selected_skills,
+            target_role=target_role,
+        )
     ats_score = await ats_engine.combined_score(optimization.optimized_resume, job_target.job_description)
     cover_letter = await outreach_agent.draft_cover_letter(
         resume_text=optimization.optimized_resume,
@@ -122,20 +132,46 @@ async def manual_optimize_and_draft(
         ],
     )
 
-    from src.utils.pdf_compiler import HTML
-    GENERATED_DIR.mkdir(parents=True, exist_ok=True)
-    
-    if HTML is not None:
-        pdf_html = _resume_text_to_html(optimization.optimized_resume, job_target.role_title)
-        pdf_path = GENERATED_DIR / f"resume_v{resume_version.id}_job{job_target.id}.pdf"
-        PDFCompiler().compile_to_file(pdf_html, pdf_path)
-        attached_path = pdf_path
-        document_type = "optimized_resume_pdf"
-    else:
-        txt_path = GENERATED_DIR / f"resume_v{resume_version.id}_job{job_target.id}.txt"
-        txt_path.write_text(optimization.optimized_resume, encoding="utf-8")
-        attached_path = txt_path
-        document_type = "optimized_resume_txt"
+    pdf_dir = Path("storage_workspace/final_documents") / f"user_{resume_version.user_id}"
+    pdf_dir.mkdir(parents=True, exist_ok=True)
+    docx_path = pdf_dir / f"resume_v{resume_version.id}.docx"
+
+    optimized_resume_json = None
+    try:
+        import json
+        optimized_resume_json = json.loads(optimization.optimized_resume)
+    except Exception:
+        pass
+
+    if not isinstance(optimized_resume_json, dict):
+        optimized_resume_json = {
+            "contact": {"name": resume_version.user.full_name, "email": resume_version.user.email},
+            "summary": "Optimized Resume",
+            "skills": selected_skills,
+            "experience": [
+                {
+                    "company": job_target.company_name,
+                    "role": job_target.role_title,
+                    "start_date": "",
+                    "end_date": "",
+                    "description": optimization.optimized_resume
+                }
+            ],
+            "education": []
+        }
+
+    docx_compiler = DocxCompiler()
+    docx_path = docx_compiler.compile_docx_state({
+        "optimized_resume_json": optimized_resume_json,
+        "user_resume_json": optimized_resume_json,
+        "target_role": target_role,
+        "target_company": job_target.company_name,
+        "user_id": resume_version.user_id,
+        "attempt_count": resume_version.id
+    }, docx_path)
+
+    attached_path = docx_path.resolve()
+    document_type = "optimized_resume_docx"
 
     email_payload.attachments.append(str(attached_path))
 

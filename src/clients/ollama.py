@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from config.settings import get_settings
+from src.config.settings import get_settings
 
 
 @dataclass(slots=True)
@@ -42,6 +42,110 @@ class OllamaClient:
             response.raise_for_status()
         return response.json()
 
+    async def query_local_llm(
+        self,
+        model: str,
+        prompt: str,
+        system: str | None = None,
+        options: dict[str, Any] | None = None,
+        json_mode: bool = False,
+    ) -> OllamaGeneration:
+        """Query Hugging Face serverless Inference API directly, bypassing Ollama completely."""
+        settings = get_settings()
+        api_key = settings.huggingface_api_key
+
+        if not api_key:
+            return OllamaGeneration(
+                text="{}",
+                model=model,
+                used_fallback=True,
+                metadata={"provider": "none", "error": "huggingface_api_key_missing"},
+            )
+
+        hf_model = "Qwen/Qwen2.5-7B-Instruct"
+        if "3b" in model.lower() or "1b" in model.lower() or "small" in model.lower():
+            hf_model = "Qwen/Qwen2.5-3B-Instruct"
+
+        try:
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
+            system_prompt = system or "You are a helpful assistant."
+            inputs = f"<|system|>\n{system_prompt}\n<|user|>\n{prompt}\n<|assistant|>\n"
+
+            hf_payload = {
+                "inputs": inputs,
+                "parameters": {
+                    "temperature": 0.2,
+                    "max_new_tokens": 1024,
+                },
+            }
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"https://api-inference.huggingface.co/models/{hf_model}",
+                    json=hf_payload,
+                    headers=headers,
+                )
+                response.raise_for_status()
+                res_data = response.json()
+
+                text = ""
+                if isinstance(res_data, list) and len(res_data) > 0:
+                    text = res_data[0].get("generated_text", "")
+                elif isinstance(res_data, dict):
+                    text = res_data.get("generated_text", "")
+
+                if text:
+                    if text.startswith(inputs):
+                        text = text[len(inputs):].strip()
+                    return OllamaGeneration(
+                        text=text.strip(),
+                        model=hf_model,
+                        used_fallback=False,
+                        metadata={"provider": "huggingface", "model": hf_model},
+                    )
+        except Exception as exc:
+            # Fallback to OpenAI if configured
+            if settings.openai_api_key:
+                try:
+                    headers = {
+                        "Authorization": f"Bearer {settings.openai_api_key}",
+                        "Content-Type": "application/json",
+                    }
+                    openai_payload = {
+                        "model": "gpt-4o-mini",
+                        "messages": [
+                            {"role": "system", "content": system or "You are a helpful assistant."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        "temperature": 0.2,
+                    }
+                    if json_mode:
+                        openai_payload["response_format"] = {"type": "json_object"}
+
+                    async with httpx.AsyncClient(timeout=15.0) as client:
+                        response = await client.post("https://api.openai.com/v1/chat/completions", json=openai_payload, headers=headers)
+                        response.raise_for_status()
+                        res_json = response.json()
+                        text = res_json["choices"][0]["message"]["content"].strip()
+                        return OllamaGeneration(
+                            text=text,
+                            model="gpt-4o-mini",
+                            used_fallback=True,
+                            metadata={"provider": "openai_fallback", "original_model": model},
+                        )
+                except Exception:
+                    pass
+
+        return OllamaGeneration(
+            text="{}",
+            model=model,
+            used_fallback=True,
+            metadata={"provider": "none", "error": "generation_failed"},
+        )
+
     async def generate(
         self,
         *,
@@ -51,31 +155,11 @@ class OllamaClient:
         options: dict[str, Any] | None = None,
         json_mode: bool = False,
     ) -> OllamaGeneration:
-        """Generate text, returning structured failure metadata when Ollama is unavailable."""
-
-        payload: dict[str, Any] = {
-            "model": model,
-            "prompt": prompt,
-            "stream": False,
-            "options": options or {"temperature": 0.2},
-        }
-        if system:
-            payload["system"] = system
-        if json_mode:
-            payload["format"] = "json"
-
-        try:
-            data = await self._post_generate(payload)
-        except httpx.HTTPError as exc:
-            return OllamaGeneration("", model, True, {"provider": "ollama", "error": str(exc)})
-
-        return OllamaGeneration(
-            text=str(data.get("response", "")).strip(),
-            model=str(data.get("model", model)),
-            used_fallback=False,
-            metadata={
-                "provider": "ollama",
-                "total_duration": data.get("total_duration"),
-                "eval_count": data.get("eval_count"),
-            },
+        """Backward-compatible generation entry point calling query_local_llm."""
+        return await self.query_local_llm(
+            model=model,
+            prompt=prompt,
+            system=system,
+            options=options,
+            json_mode=json_mode,
         )

@@ -14,8 +14,8 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from config.settings import get_settings
-from database.models import User
+from src.config.settings import get_settings
+from src.database.models import User
 from src.api.dependencies import get_db
 
 router = APIRouter()

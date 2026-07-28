@@ -6,12 +6,14 @@ from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from database.models import ResumeVersion, User
+from src.database.models import ResumeVersion, User, CandidatePreference, JobTarget
 from src.api.dependencies import get_db
 from src.utils.resume_parser import ResumeParser
+from src.agents.job_discovery import JobDiscoveryAgent
 
 router = APIRouter()
 UPLOAD_DIR = Path("storage_workspace/uploads")
@@ -32,6 +34,63 @@ class ResumeUploadRequest(BaseModel):
     resume_text: str = Field(..., min_length=1)
     version_label: str = Field(default="original", min_length=1, max_length=100)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+async def _discover_and_persist_jobs(user_id: int, db: Session) -> list[dict[str, Any]]:
+    preference = (
+        db.query(CandidatePreference)
+        .filter(CandidatePreference.user_id == user_id)
+        .order_by(CandidatePreference.created_at.desc(), CandidatePreference.id.desc())
+        .first()
+    )
+    query = ""
+    target_role = "Software Engineer"
+    skills = []
+    if preference:
+        target_role = preference.target_role or target_role
+        skills = preference.skills_to_highlight or []
+        query = f"{target_role} jobs " + " ".join(skills[:3])
+    else:
+        query = "Software Engineer jobs"
+
+    agent = JobDiscoveryAgent()
+    postings = await agent.discover(query=query, max_results=10)
+
+    cards = []
+    for posting in postings:
+        extracted_skills = []
+        desc = posting.description
+        if skills:
+            for skill in skills:
+                if skill.lower() in desc.lower():
+                    extracted_skills.append(skill)
+        if not extracted_skills:
+            common_skills = ["Python", "FastAPI", "Go", "Java", "SQL", "Docker", "Kubernetes", "AWS", "React", "TypeScript"]
+            for s in common_skills:
+                if s.lower() in desc.lower():
+                    extracted_skills.append(s)
+
+        job_target = JobTarget(
+            user_id=user_id,
+            company_name=posting.company,
+            role_title=posting.title,
+            job_url=posting.url,
+            job_description=posting.description or posting.title,
+            status="discovered",
+            metadata_json={"extracted_skills": extracted_skills, **posting.metadata},
+        )
+        db.add(job_target)
+        db.flush()
+
+        cards.append({
+            "job_id": job_target.id,
+            "title": job_target.role_title,
+            "company": job_target.company_name,
+            "description": job_target.job_description,
+            "extracted_skills": extracted_skills
+        })
+    db.commit()
+    return cards
 
 
 @router.post("/upload")
@@ -56,11 +115,15 @@ async def upload_resume(
     db.add(resume_version)
     db.commit()
     db.refresh(resume_version)
+
+    discovered_jobs = await _discover_and_persist_jobs(user.id, db)
+
     return {
         "status": "stored",
         "user_id": user.id,
         "resume_version_id": resume_version.id,
         "version_label": resume_version.version_label,
+        "job_targets": discovered_jobs,
     }
 
 
@@ -110,6 +173,8 @@ async def upload_resume_file(
     db.commit()
     db.refresh(resume_version)
 
+    discovered_jobs = await _discover_and_persist_jobs(user.id, db)
+
     return {
         "status": "parsed_and_stored",
         "user_id": user.id,
@@ -117,6 +182,7 @@ async def upload_resume_file(
         "version_label": resume_version.version_label,
         "parser": parsed.parser,
         "text_preview": parsed.text[:500],
+        "job_targets": discovered_jobs,
         "hitl_gate": {
             "gate": "gate-1",
             "message": "Review parsed resume text and approve resume selection.",
@@ -149,3 +215,35 @@ async def rollback_resume(
         "user_id": payload.user_id,
         "resume_version_id": payload.resume_version_id,
     }
+
+
+@router.get("/download/{version_id}")
+async def download_resume_file(
+    version_id: int,
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    """Download the compiled DOCX resume document for a version."""
+    from src.database.models import GeneratedDocument
+    doc = db.query(GeneratedDocument).filter(
+        GeneratedDocument.resume_version_id == version_id,
+        GeneratedDocument.document_type == "optimized_resume_docx",
+    ).first()
+    
+    if not doc or not doc.file_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No generated document found for this resume version.",
+        )
+        
+    path = Path(doc.file_path)
+    if not path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Compiled document file not found on disk.",
+        )
+        
+    return FileResponse(
+        path=path,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename=path.name,
+    )

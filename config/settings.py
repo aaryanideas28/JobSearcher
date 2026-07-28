@@ -50,6 +50,11 @@ class Settings(BaseSettings):
     tavily_api_key: str | None = Field(default=None, alias="TAVILY_API_KEY")
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
     google_api_key: str | None = Field(default=None, alias="GOOGLE_API_KEY")
+    huggingface_api_key: str | None = Field(
+        default=None,
+        alias="HF_API_KEY",
+        validation_alias=AliasChoices("HF_API_KEY", "HUGGINGFACE_API_KEY") if AliasChoices else "HF_API_KEY",
+    )
     langfuse_public_key: str | None = Field(default=None, alias="LANGFUSE_PUBLIC_KEY")
     langfuse_secret_key: str | None = Field(default=None, alias="LANGFUSE_SECRET_KEY")
     gmail_client_id: str | None = Field(

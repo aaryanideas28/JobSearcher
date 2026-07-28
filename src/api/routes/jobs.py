@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from database.models import JobTarget, User
+from src.database.models import JobTarget, User
 from src.agents.job_discovery import JobDiscoveryAgent
 from src.api.dependencies import get_db
 

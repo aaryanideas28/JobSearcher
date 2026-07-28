@@ -2,22 +2,17 @@
 """SQLAlchemy ORM models for the AI Resume Automation Platform."""
 
 from __future__ import annotations
-
 from datetime import datetime
 from typing import Any
-
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
-
 from database.base import Base
-
 
 def json_column_type() -> JSON:
     """Return a JSON type compatible with SQLite and PostgreSQL."""
     return JSON().with_variant(JSONB, "postgresql")
-
 
 class User(Base):
     """Application user/candidate account."""
@@ -41,7 +36,6 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
-
 
 class ResumeVersion(Base):
     """Versioned resume text and optimization metadata."""

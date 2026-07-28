@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from config.settings import get_settings
+from src.config.settings import get_settings
 
 
 class ModelTier(StrEnum):
@@ -16,6 +16,8 @@ class ModelTier(StrEnum):
     LARGE = "8b"
     LIGHTWEIGHT = "1.5b"
     MAIN = "8b"
+    QWEN_3B = "qwen2.5:3b"
+    LLAMA_8B_Q4 = "llama3.1:8b-instruct-q4_K_M"
 
 
 @dataclass(slots=True)

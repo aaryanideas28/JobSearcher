@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from database.models import CandidatePreference, User
+from src.database.models import CandidatePreference, User
 from src.api.dependencies import get_db
 
 router = APIRouter()

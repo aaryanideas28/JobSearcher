@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from config.settings import get_settings
+from src.config.settings import get_settings
 
 try:
     from celery import Celery
