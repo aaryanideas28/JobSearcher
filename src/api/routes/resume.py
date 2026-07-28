@@ -247,3 +247,30 @@ async def download_resume_file(
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename=path.name,
     )
+
+
+class CalculateATSRequest(BaseModel):
+    """Request payload for ATS match score calculation."""
+
+    tailored_resume: str = Field(..., min_length=1)
+    job_description: str = Field(..., min_length=1)
+
+
+@router.post("/calculate-ats")
+async def calculate_ats(payload: CalculateATSRequest) -> dict[str, Any]:
+    """Compare tailored resume and job description, returning an ATS match score (0-100)."""
+    from src.agents.ats_engine import ATSEngine
+
+    engine = ATSEngine()
+    result = engine.calculate_ats_score(payload.tailored_resume, payload.job_description)
+    raw_score = result.get("overall_score", 0.0)
+    int_score = int(round(raw_score * 100)) if raw_score <= 1.0 else int(round(raw_score))
+    int_score = max(0, min(100, int_score))
+
+    return {
+        "ats_score": int_score,
+        "score": int_score,
+        "missing_keywords": result.get("missing_keywords", []),
+        "semantic_gaps": result.get("semantic_gaps", []),
+    }
+

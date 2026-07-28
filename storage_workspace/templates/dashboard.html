@@ -668,15 +668,53 @@
           status.innerHTML = `<div class="spinner"></div> Optimizing resume and drafting email outreach for ${title} at ${company}...`;
 
           try {
+            const recipientAddr = "recruiter@" + company.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
             latest = await post("/workflow/manual-optimize-draft", {
               resume_version_id: resumeId,
               job_target_id: job.job_id,
               candidate_preference_id: profileId,
-              recipient_email: "recruiter@" + company.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com"
+              recipient_email: recipientAddr
             });
 
-            const atsValue = Math.round(latest.ats_score * 100);
-            document.getElementById("ats").textContent = isNaN(atsValue) ? "-" : atsValue + "%";
+            // 1. Fetch exact ATS score via POST /resume/calculate-ats
+            try {
+              const atsRes = await post("/resume/calculate-ats", {
+                tailored_resume: latest.optimized_resume || "",
+                job_description: job.description || job.title
+              });
+              const atsValue = atsRes.ats_score !== undefined ? atsRes.ats_score : atsRes.score;
+              document.getElementById("ats").textContent = isNaN(atsValue) ? "-" : atsValue + "%";
+            } catch (atsErr) {
+              const fallbackAts = Math.round((latest.ats_score || 0) * 100);
+              document.getElementById("ats").textContent = isNaN(fallbackAts) ? "-" : fallbackAts + "%";
+            }
+
+            // 2. Fetch personalized email draft via POST /outreach/generate-email
+            try {
+              const emailDraftRes = await post("/outreach/generate-email", {
+                job_description: job.description || job.title,
+                candidate_profile: {
+                  email: email,
+                  full_name: document.getElementById("fullName").value,
+                  target_role: document.getElementById("targetRole").value,
+                  skills_to_highlight: csv("skills"),
+                  company: company
+                },
+                recipient_email: recipientAddr,
+                company_name: company,
+                role_title: title
+              });
+
+              if (emailDraftRes) {
+                latest.email_draft = {
+                  recipient_email: emailDraftRes.to || emailDraftRes.recipient_email || recipientAddr,
+                  subject: emailDraftRes.subject || `Application for ${title}`,
+                  body: emailDraftRes.body || ""
+                };
+              }
+            } catch (emailErr) {
+              console.warn("Outreach email generator warning:", emailErr);
+            }
 
             renderDraft(latest);
             status.className = "status-message success";
