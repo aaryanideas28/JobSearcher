@@ -27,6 +27,8 @@ class AgentState(TypedDict):
     target_company: NotRequired[str]
     target_role: NotRequired[str]
     skills_to_highlight: NotRequired[list[str]]
+    preferred_locations: NotRequired[list[str]]
+    work_mode: NotRequired[str]
     discovered_jobs: NotRequired[list[dict[str, Any]]]
     selected_job: NotRequired[dict[str, Any]]
     extracted_facts: NotRequired[dict[str, Any]]

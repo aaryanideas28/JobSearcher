@@ -31,6 +31,7 @@ class CandidatePreferenceRequest(BaseModel):
     target_role: str = Field(..., min_length=1)
     skills_to_highlight: list[str] = Field(default_factory=list)
     preferred_locations: list[str] = Field(default_factory=list)
+    work_mode: str | None = "Any"
     experience_level: str | None = None
     work_authorization: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -97,6 +98,7 @@ async def create_or_update_candidate_profile(
         experience_level=payload.experience_level,
         skills_to_highlight=payload.skills_to_highlight,
         preferred_locations=payload.preferred_locations,
+        work_mode=payload.work_mode,
         work_authorization=payload.work_authorization,
         metadata_json=payload.metadata,
     )
@@ -111,6 +113,7 @@ async def create_or_update_candidate_profile(
         "target_role": preference.target_role,
         "skills_to_highlight": preference.skills_to_highlight,
         "preferred_locations": preference.preferred_locations,
+        "work_mode": getattr(preference, "work_mode", "Any"),
         "next_steps": [
             "POST /api/v1/resume/upload-file or /api/v1/resume/upload",
             "POST /api/v1/jobs/manual",
@@ -142,6 +145,7 @@ async def get_latest_candidate_profile(
         "experience_level": preference.experience_level,
         "skills_to_highlight": preference.skills_to_highlight,
         "preferred_locations": preference.preferred_locations,
+        "work_mode": getattr(preference, "work_mode", "Any"),
         "work_authorization": preference.work_authorization,
         "metadata": preference.metadata_json,
     }

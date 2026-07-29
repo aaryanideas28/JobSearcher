@@ -7,9 +7,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import get_settings
+from database.connection import init_db
 from src.api.routes import auth, dashboard, hitl, intake, jobs, outreach, resume, workflow
 
 settings = get_settings()
+init_db()
 
 app = FastAPI(
     title=settings.app_name,

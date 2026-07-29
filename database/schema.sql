@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS job_targets (
     job_description TEXT NOT NULL,
     fit_score DOUBLE PRECISION,
     status VARCHAR(50) NOT NULL DEFAULT 'discovered',
+    preferred_locations JSONB NOT NULL DEFAULT '[]'::jsonb,
+    work_mode VARCHAR(100) DEFAULT 'Any',
     metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -38,6 +40,7 @@ CREATE TABLE IF NOT EXISTS candidate_preferences (
     experience_level VARCHAR(100),
     skills_to_highlight JSONB NOT NULL DEFAULT '[]'::jsonb,
     preferred_locations JSONB NOT NULL DEFAULT '[]'::jsonb,
+    work_mode VARCHAR(100) DEFAULT 'Any',
     work_authorization VARCHAR(255),
     metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

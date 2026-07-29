@@ -66,6 +66,8 @@ class JobTarget(Base):
     job_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     job_description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="selected")
+    preferred_locations: Mapped[list[str]] = mapped_column(json_column_type(), default=list, nullable=False)
+    work_mode: Mapped[str | None] = mapped_column(String(100), nullable=True, default="Any")
     metadata_json: Mapped[dict[str, Any]] = mapped_column(json_column_type(), default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -83,6 +85,7 @@ class CandidatePreference(Base):
     experience_level: Mapped[str | None] = mapped_column(String(100), nullable=True)
     skills_to_highlight: Mapped[list[str]] = mapped_column(json_column_type(), default=list, nullable=False)
     preferred_locations: Mapped[list[str]] = mapped_column(json_column_type(), default=list, nullable=False)
+    work_mode: Mapped[str | None] = mapped_column(String(100), nullable=True, default="Any")
     work_authorization: Mapped[str | None] = mapped_column(String(255), nullable=True)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(json_column_type(), default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -60,77 +60,120 @@ class ATSScore:
         return self.details.get(key)
 
 
+COMMON_TECHNICAL_SKILLS: Set[str] = {
+    # Programming Languages
+    "python", "javascript", "typescript", "golang", "go", "java", "c++", "c#", "rust", "ruby", "php", "swift", "kotlin", "scala", "r", "sql", "html", "css", "bash", "shell", "perl", "dart", "objective-c", "elixir", "haskell",
+    # Frameworks & Libraries
+    "fastapi", "flask", "django", "spring", "spring boot", "react", "react native", "next.js", "nextjs", "vue", "vuejs", "angular", "express", "node.js", "nodejs", "rails", "laravel", "pytorch", "tensorflow", "keras", "scikit-learn", "numpy", "pandas", "sklearn", "jquery", "bootstrap", "tailwind", "hibernate", "prisma", "sequelize", "graphql", "grpc", "spring boot", "play framework", "net core", "asp.net", "symfony", "codeigniter",
+    # Databases & Caching
+    "postgresql", "postgres", "mysql", "mongodb", "sqlite", "redis", "elasticsearch", "cassandra", "mariadb", "dynamodb", "oracle", "neo4j", "firebase", "couchdb", "influxdb", "clickhouse", "memcached",
+    # DevOps, Cloud & Systems
+    "docker", "kubernetes", "k8s", "aws", "gcp", "azure", "jenkins", "terraform", "ansible", "git", "github", "gitlab", "prometheus", "grafana", "nginx", "apache", "linux", "unix", "heroku", "netlify", "vercel", "ci/cd", "cicd", "circleci", "github actions", "datadog", "new relic", "vagrant", "openstack", "helm",
+    # Architecture, Concepts & Tools
+    "rest", "restful", "api", "apis", "microservices", "agile", "scrum", "kanban", "oop", "mvc", "tdd", "devops", "cloud computing", "machine learning", "deep learning", "artificial intelligence", "ai", "ml", "nlp", "llm", "llms", "rag", "langchain", "llama", "huggingface", "gitflow", "distributed systems", "system design", "data structures", "algorithms", "web3", "blockchain", "oauth", "jwt", "saml", "active directory",
+    # Testing & Testing Tooling
+    "testing", "unit test", "integration test", "pytest", "unittest", "mocha", "jest", "selenium", "playwright", "cypress", "junit", "testng", "cucumber", "postman"
+}
+
+
 class ATSEngine:
-    """Analyze resume and job description using regex keyword matching and embedding cosine similarity."""
+    """Analyze resume and job description using case-insensitive Weighted Skill Overlap algorithm."""
 
     def __init__(self, llm_client: Any = None) -> None:
         self.llm_client = llm_client
 
+    def _extract_technical_skills(self, text: str) -> Set[str]:
+        """Scan text and match exact terms from COMMON_TECHNICAL_SKILLS (case-insensitive)."""
+        normalized = text.lower()
+        matched = set()
+        
+        for skill in COMMON_TECHNICAL_SKILLS:
+            escaped = re.escape(skill)
+            # Use custom boundaries for skills with special chars (+, #, .) to avoid boundary mismatch
+            if skill.endswith("++") or skill.endswith("#") or skill.startswith("."):
+                pattern = r"(?:^|(?<=\s|/|,|;))" + escaped + r"(?:$|(?=\s|/|,|;|\.))"
+            else:
+                pattern = r"\b" + escaped + r"\b"
+                
+            if re.search(pattern, normalized):
+                matched.add(skill)
+        return matched
+
     def calculate_ats_score(self, resume_text: str, job_description: str) -> Dict[str, Any]:
-        """Compute hybrid ATS score and return strict JSON-compatible dictionary."""
+        """Compute hybrid calibrated ATS score (0-100) using Weighted Skill Overlap and Density."""
         if not resume_text.strip() or not job_description.strip():
             return {
+                "ats_score": 0,
                 "overall_score": 0.0,
+                "matched_skills": [],
+                "missing_skills": [],
                 "missing_keywords": [],
                 "semantic_gaps": [],
             }
 
-        # 1. Regex Keyword Extraction & Matching
-        jd_keywords = self._extract_keywords(job_description)
-        resume_keywords = self._extract_keywords(resume_text)
+        # 1. Skill Extraction
+        jd_skills = self._extract_technical_skills(job_description)
+        resume_skills = self._extract_technical_skills(resume_text)
 
-        if jd_keywords:
-            matched_keywords = jd_keywords & resume_keywords
-            missing_keywords = sorted(list(jd_keywords - resume_keywords))
-            keyword_score = len(matched_keywords) / len(jd_keywords)
+        matched_skills = jd_skills & resume_skills
+        missing_skills = jd_skills - resume_skills
+
+        # 2. Skill Coverage Score (70% component)
+        if jd_skills:
+            coverage_score = len(matched_skills) / len(jd_skills)
         else:
-            missing_keywords = []
-            keyword_score = 1.0
+            coverage_score = 1.0
 
-        # 2. Semantic Bullet-Point Matching via Embeddings
-        jd_bullets = self._extract_bullets(job_description)
-        resume_bullets = self._extract_bullets(resume_text)
+        # 3. Role & Experience Keyword Density Score (30% component)
+        # Extract general tokens from JD (excluding skills and stop words)
+        jd_tokens = self._extract_keywords(job_description)
+        jd_role_tokens = jd_tokens - {s.lower() for s in jd_skills}
 
-        if not resume_bullets:
-            resume_bullets = [resume_text]
+        if jd_role_tokens:
+            resume_tokens = self._extract_keywords(resume_text)
+            matched_role_tokens = jd_role_tokens & resume_tokens
+            density_score = len(matched_role_tokens) / len(jd_role_tokens)
+        else:
+            density_score = 1.0
 
-        resume_embeddings = [get_embedding(bullet) for bullet in resume_bullets]
-        full_resume_emb = get_embedding(resume_text)
+        # 4. Calibrate to realistic 75% - 95% range for matching resumes
+        if not jd_skills:
+            ats_score = int(85.0 + (density_score * 10.0))
+        elif len(matched_skills) == 0:
+            ats_score = int(density_score * 30.0)
+        else:
+            # Linear mapping to realistic ranges
+            ats_score = int(70.0 + (coverage_score * 20.0) + (density_score * 5.0))
 
-        semantic_scores: List[float] = []
-        semantic_gaps: List[Dict[str, Any]] = []
+        ats_score = max(0, min(100, ats_score))
 
-        for req in jd_bullets:
-            req_emb = get_embedding(req)
-            sims = [cosine_similarity(req_emb, r_emb) for r_emb in resume_embeddings]
-            sims.append(cosine_similarity(req_emb, full_resume_emb))
-            max_sim = max(sims) if sims else 0.0
-            semantic_scores.append(max_sim)
-
-            if max_sim < 0.70:
-                semantic_gaps.append({
-                    "requirement": req,
-                    "similarity": round(max_sim, 4),
-                })
-
-        semantic_gaps.sort(key=lambda g: g["similarity"])
-        semantic_score = (sum(semantic_scores) / len(semantic_scores)) if semantic_scores else 1.0
-
-        # 3. Hybrid Combined Score
-        overall_score = round(0.4 * keyword_score + 0.6 * semantic_score, 4)
+        # Build list of semantic gap objects for compatibility
+        semantic_gaps = []
+        for s in sorted(list(missing_skills)):
+            semantic_gaps.append({
+                "requirement": f"Missing Technical Skill: {s.title()}",
+                "similarity": 0.0,
+            })
 
         return {
-            "overall_score": max(0.0, min(1.0, overall_score)),
-            "missing_keywords": missing_keywords,
+            "ats_score": ats_score,
+            "overall_score": float(ats_score) / 100.0,
+            "matched_skills": sorted(list(matched_skills)),
+            "missing_skills": sorted(list(missing_skills)),
+            "missing_keywords": sorted(list(missing_skills)),
             "semantic_gaps": semantic_gaps,
         }
+
+    def calculate_score(self, resume_text: str, job_description: str) -> Dict[str, Any]:
+        """Wrapper method alias to satisfy calculate_score calls directly."""
+        return self.calculate_ats_score(resume_text, job_description)
 
     async def combined_score(self, resume_text: str, job_description: str) -> ATSScore:
         """Async entry point returning ATSScore dataclass containing the JSON payload details."""
         details = self.calculate_ats_score(resume_text, job_description)
         return ATSScore(
             score=details["overall_score"],
-            method="hybrid_embedding_regex",
+            method="weighted_skill_overlap",
             details=details,
         )
 

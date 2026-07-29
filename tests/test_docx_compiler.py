@@ -82,3 +82,45 @@ def test_compile_docx_cover_letter() -> None:
     assert "generated" in str(docx_path)
     assert "cover_letter_test_session_123.docx" in str(docx_path)
     assert docx_path.exists()
+
+
+def test_parse_resume_text_to_dict() -> None:
+    compiler = DocxCompiler()
+    raw_text = (
+        "Abhishek Sharma\n"
+        "AI/ML & Python Developer\n"
+        "shabhishek055@gmail.com | +91 9575676062 | Indore, India | linkedin.com/in/Abhishek\n\n"
+        "---\n"
+        "PROFILE SUMMARY\n"
+        "---\n"
+        "Results-driven AI/ML Engineer with a proven track record.\n\n"
+        "---\n"
+        "EDUCATION\n"
+        "---\n"
+        "Bachelor of Technology (IT Engineering) | Rajiv Gandhi Prodhogiki Vishvvidhyalya, Bhopal | Indore | 2020-2024 | 7.6 CGPA\n\n"
+        "---\n"
+        "PROJECTS\n"
+        "---\n"
+        "TechnikalPAI - A Behavior-Based Friendly AI | Open-AI, Flask | 04/2024 - present\n"
+        "• Developed behavior-based Friendly AI.\n"
+        "• Achieved 85% accuracy.\n\n"
+        "---\n"
+        "SKILLS\n"
+        "---\n"
+        "Languages: Python, SQL, R\n"
+        "ML Frameworks: TensorFlow, PyTorch"
+    )
+    
+    parsed = compiler.parse_resume_text_to_dict(raw_text)
+    assert parsed["contact"]["name"] == "Abhishek Sharma"
+    assert parsed["subtitle"] == "AI/ML & Python Developer"
+    assert parsed["contact"]["email"] == "shabhishek055@gmail.com"
+    assert parsed["contact"]["phone"] == "+91 9575676062"
+    assert len(parsed["education"]) == 1
+    assert parsed["education"][0]["degree"] == "Bachelor of Technology (IT Engineering)"
+    assert len(parsed["projects"]) == 1
+    assert parsed["projects"][0]["name"] == "TechnikalPAI - A Behavior-Based Friendly AI"
+    assert len(parsed["projects"][0]["bullets"]) == 2
+    assert len(parsed["skills"]) == 2
+    assert parsed["skills"][0]["category"] == "Languages"
+

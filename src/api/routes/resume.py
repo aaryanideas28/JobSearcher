@@ -36,7 +36,7 @@ class ResumeUploadRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-async def _discover_and_persist_jobs(user_id: int, db: Session) -> list[dict[str, Any]]:
+async def _discover_and_persist_jobs(user_id: int, db: Session, source: str = "tavily") -> list[dict[str, Any]]:
     preference = (
         db.query(CandidatePreference)
         .filter(CandidatePreference.user_id == user_id)
@@ -46,15 +46,25 @@ async def _discover_and_persist_jobs(user_id: int, db: Session) -> list[dict[str
     query = ""
     target_role = "Software Engineer"
     skills = []
+    preferred_locations = []
+    work_mode = "Any"
     if preference:
         target_role = preference.target_role or target_role
         skills = preference.skills_to_highlight or []
+        preferred_locations = preference.preferred_locations or []
+        work_mode = getattr(preference, "work_mode", "Any")
         query = f"{target_role} jobs " + " ".join(skills[:3])
     else:
         query = "Software Engineer jobs"
 
     agent = JobDiscoveryAgent()
-    postings = await agent.discover(query=query, max_results=10)
+    postings = await agent.discover(
+        query=query,
+        max_results=10,
+        source=source,
+        preferred_locations=preferred_locations,
+        work_mode=work_mode,
+    )
 
     cards = []
     for posting in postings:
@@ -77,6 +87,8 @@ async def _discover_and_persist_jobs(user_id: int, db: Session) -> list[dict[str
             job_url=posting.url,
             job_description=posting.description or posting.title,
             status="discovered",
+            preferred_locations=preferred_locations,
+            work_mode=work_mode,
             metadata_json={"extracted_skills": extracted_skills, **posting.metadata},
         )
         db.add(job_target)
@@ -87,7 +99,8 @@ async def _discover_and_persist_jobs(user_id: int, db: Session) -> list[dict[str
             "title": job_target.role_title,
             "company": job_target.company_name,
             "description": job_target.job_description,
-            "extracted_skills": extracted_skills
+            "extracted_skills": extracted_skills,
+            "job_url": job_target.job_url
         })
     db.commit()
     return cards
@@ -97,6 +110,7 @@ async def _discover_and_persist_jobs(user_id: int, db: Session) -> list[dict[str
 async def upload_resume(
     payload: ResumeUploadRequest,
     db: Annotated[Session, Depends(get_db)],
+    source: str = "tavily",
 ) -> dict[str, Any]:
     """Persist a resume text upload as a versioned resume record."""
 
@@ -116,7 +130,7 @@ async def upload_resume(
     db.commit()
     db.refresh(resume_version)
 
-    discovered_jobs = await _discover_and_persist_jobs(user.id, db)
+    discovered_jobs = await _discover_and_persist_jobs(user.id, db, source=source)
 
     return {
         "status": "stored",
@@ -134,6 +148,7 @@ async def upload_resume_file(
     db: Annotated[Session, Depends(get_db)],
     full_name: Annotated[str, Form(min_length=1)] = "Candidate",
     version_label: Annotated[str, Form(min_length=1, max_length=100)] = "uploaded",
+    source: str = "tavily",
 ) -> dict[str, Any]:
     """Upload a resume file, parse text, store the file, and create a resume version."""
 
@@ -173,7 +188,8 @@ async def upload_resume_file(
     db.commit()
     db.refresh(resume_version)
 
-    discovered_jobs = await _discover_and_persist_jobs(user.id, db)
+    discovered_jobs = await _discover_and_persist_jobs(user.id, db, source=source)
+
 
     return {
         "status": "parsed_and_stored",

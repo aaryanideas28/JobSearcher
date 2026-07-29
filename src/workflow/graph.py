@@ -130,10 +130,17 @@ async def job_discovery_node(state: AgentState) -> AgentState:
     from src.agents.job_discovery import JobDiscoveryAgent
     target_role = state.get("target_role") or "Software Engineer"
     skills = state.get("skills_to_highlight") or []
+    preferred_locations = state.get("preferred_locations") or []
+    work_mode = state.get("work_mode") or "Any"
     query = f"{target_role} jobs " + " ".join(skills[:3])
 
     agent = JobDiscoveryAgent()
-    postings = await agent.discover(query=query, max_results=10)
+    postings = await agent.discover(
+        query=query,
+        max_results=10,
+        preferred_locations=preferred_locations,
+        work_mode=work_mode,
+    )
 
     discovered = []
     for posting in postings:

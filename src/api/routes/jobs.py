@@ -32,6 +32,9 @@ class JobDiscoveryRequest(BaseModel):
     query: str = Field(..., min_length=3)
     max_results: int = Field(default=5, ge=1, le=20)
     persist: bool = True
+    source: str = "tavily"
+    preferred_locations: list[str] = Field(default_factory=list)
+    work_mode: str | None = "Any"
 
 
 @router.post("/manual")
@@ -52,6 +55,8 @@ async def create_manual_job_target(
         job_url=payload.job_url,
         job_description=payload.job_description,
         status="selected",
+        preferred_locations=[],
+        work_mode="Any",
         metadata_json={"source": "manual_selection", **payload.metadata},
     )
     db.add(job_target)
@@ -82,7 +87,30 @@ async def discover_jobs(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
-    postings = await JobDiscoveryAgent().discover(query=payload.query, max_results=payload.max_results)
+    pref_locations = payload.preferred_locations
+    w_mode = payload.work_mode
+
+    if not pref_locations or w_mode == "Any" or w_mode is None:
+        from src.database.models import CandidatePreference
+        preference = (
+            db.query(CandidatePreference)
+            .filter(CandidatePreference.user_id == payload.user_id)
+            .order_by(CandidatePreference.created_at.desc(), CandidatePreference.id.desc())
+            .first()
+        )
+        if preference:
+            if not pref_locations:
+                pref_locations = preference.preferred_locations
+            if w_mode == "Any" or w_mode is None:
+                w_mode = getattr(preference, "work_mode", "Any")
+
+    postings = await JobDiscoveryAgent().discover(
+        query=payload.query,
+        max_results=payload.max_results,
+        source=payload.source,
+        preferred_locations=pref_locations,
+        work_mode=w_mode,
+    )
     stored: list[dict[str, Any]] = []
     if payload.persist:
         for posting in postings:
@@ -93,6 +121,8 @@ async def discover_jobs(
                 job_url=posting.url,
                 job_description=posting.description or posting.title,
                 status="discovered",
+                preferred_locations=pref_locations or [],
+                work_mode=w_mode or "Any",
                 metadata_json=posting.metadata,
             )
             db.add(job_target)

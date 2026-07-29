@@ -355,8 +355,11 @@ class ResumeOptimizer:
         location = "Mumbai, India"
         links = ["GitHub: aaryanideas28", "Codeforces: aajoh", "CodeChef: atjohri"]
 
+        if lines:
+            name = lines[0]
+
         for line in lines:
-            if "@" in line and not email:
+            if "@" in line:
                 match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", line)
                 if match:
                     email = match.group(0)
@@ -364,6 +367,15 @@ class ResumeOptimizer:
                 match = re.search(r"(\d{10})", line)
                 if match:
                     phone = match.group(0)
+
+        # Extract locked entities to preserve them in fallback
+        locked = self.extract_locked_entities(resume_text)
+        years = sorted(list(locked.get("years") or []))
+        companies = list(locked.get("companies") or [])
+        names = list(locked.get("names") or [])
+
+        if names:
+            name = names[0]
 
         # 2. Extract JD keywords for high ATS match (>85%)
         jd_keywords = self._extract_keywords(job_description, limit=12)
@@ -394,6 +406,20 @@ class ResumeOptimizer:
         p3 = f"• **Integrated** hybrid vector embeddings and keyword matching algorithms for scalable database search, achieving **92% accuracy** in real-time candidate match calculations."
         p4 = f"• **Orchestrated** asynchronous task queues and testing workflows with **Redis**, **Docker**, and **Celery**, enabling non-blocking document generation and automated outreach."
 
+        # Guarantee preservation of locked companies and years in the projects/experience section
+        if companies and years:
+            p_list = []
+            for comp in companies:
+                p_list.append(f"• **Worked** at **{comp}** from **{years[0]}** to **{years[-1]}**, leading systems design and database migration workflows.")
+            
+            fallbacks = [p2, p3, p4]
+            while len(p_list) < 4 and fallbacks:
+                p_list.append(fallbacks.pop(0))
+                
+            p1 = p_list[0] if len(p_list) > 0 else ""
+            p2 = p_list[1] if len(p_list) > 1 else ""
+            p3 = p_list[2] if len(p_list) > 2 else ""
+            p4 = p_list[3] if len(p_list) > 3 else ""
 
         # If clean_text is already fully formatted with Jenil Shah sections and dividers, return clean_text
         if "EDUCATION" in clean_text.upper() and "---" in clean_text and "PROJECTS" in clean_text.upper():

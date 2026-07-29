@@ -41,3 +41,33 @@ def test_combined_score_returns_ats_score() -> None:
     assert score["overall_score"] == score.score
     assert "missing_keywords" in score.details
     assert "semantic_gaps" in score.details
+
+
+def test_ats_engine_calibrated_scoring() -> None:
+    engine = ATSEngine()
+    
+    # 1. Relevant resume with matching skills (should score in 75% to 95% range)
+    resume = "Senior Engineer with Python, FastAPI, Docker, and PostgreSQL experience."
+    jd = "Seeking a developer proficient in Python, FastAPI, Docker, and Kubernetes."
+    
+    result = engine.calculate_ats_score(resume, jd)
+    
+    assert "ats_score" in result
+    assert "matched_skills" in result
+    assert "missing_skills" in result
+    assert isinstance(result["ats_score"], int)
+    
+    # Python, FastAPI, Docker matched; Kubernetes missing. (3 out of 4 matched)
+    assert "python" in result["matched_skills"]
+    assert "fastapi" in result["matched_skills"]
+    assert "docker" in result["matched_skills"]
+    assert "kubernetes" in result["missing_skills"]
+    
+    # Must reliably score in 75% to 95% range
+    assert 75 <= result["ats_score"] <= 95
+    
+    # 2. No matching skills (should score below 50%)
+    irrelevant_resume = "Chef specializing in Italian cuisine and pastry arts."
+    irrelevant_result = engine.calculate_ats_score(irrelevant_resume, jd)
+    assert irrelevant_result["ats_score"] < 50
+
