@@ -7,50 +7,50 @@
   <title>Stratum Job Agent - AI Resume Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: dark;
-      --bg: #090d16;
-      --bg-gradient: radial-gradient(circle at 50% 0%, #151e36 0%, #090d16 100%);
-      --card-bg: rgba(17, 25, 40, 0.45);
-      --card-border: rgba(255, 255, 255, 0.06);
+      --bg: #0B0F17;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #121824 0%, #0B0F17 100%);
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: #1E293B;
       --text-primary: #f8fafc;
       --text-muted: #94a3b8;
-      --accent: #6366f1;
-      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-      --accent-hover: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+      --accent: #10b981;
+      --accent-gradient: linear-gradient(135deg, #10b981 0%, #8b5cf6 100%);
+      --accent-hover: linear-gradient(135deg, #059669 0%, #7c3aed 100%);
       --success: #10b981;
       --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
       --warning: #f59e0b;
       --error: #ef4444;
-      --input-bg: rgba(10, 15, 30, 0.6);
-      --focus-ring: rgba(99, 102, 241, 0.35);
-      --header-bg: rgba(9, 13, 22, 0.7);
-      --job-card-bg: rgba(30, 41, 59, 0.25);
-      --pre-bg: #050811;
+      --input-bg: rgba(15, 23, 42, 0.6);
+      --focus-ring: rgba(16, 185, 129, 0.3);
+      --header-bg: rgba(11, 15, 23, 0.8);
+      --job-card-bg: rgba(255, 255, 255, 0.02);
+      --pre-bg: #070a13;
       --pre-border: rgba(255, 255, 255, 0.05);
-      --pre-color: #38bdf8;
+      --pre-color: #34d399;
     }
 
     body.light-mode {
       color-scheme: light;
       --bg: #f8fafc;
-      --bg-gradient: radial-gradient(circle at 50% 0%, #eff6ff 0%, #f8fafc 100%);
-      --card-bg: rgba(255, 255, 255, 0.75);
+      --bg-gradient: radial-gradient(circle at 50% 0%, #f1f5f9 0%, #f8fafc 100%);
+      --card-bg: rgba(255, 255, 255, 0.8);
       --card-border: rgba(0, 0, 0, 0.08);
       --text-primary: #0f172a;
       --text-muted: #475569;
-      --accent: #4f46e5;
-      --accent-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      --accent-hover: linear-gradient(135deg, #3730a3 0%, #6d28d9 100%);
+      --accent: #059669;
+      --accent-gradient: linear-gradient(135deg, #059669 0%, #7c3aed 100%);
+      --accent-hover: linear-gradient(135deg, #047857 0%, #6d28d9 100%);
       --input-bg: rgba(255, 255, 255, 0.95);
-      --focus-ring: rgba(79, 70, 229, 0.2);
+      --focus-ring: rgba(5, 150, 105, 0.2);
       --header-bg: rgba(255, 255, 255, 0.85);
       --job-card-bg: rgba(241, 245, 249, 0.85);
       --pre-bg: #f1f5f9;
       --pre-border: rgba(0, 0, 0, 0.06);
-      --pre-color: #0f766e;
+      --pre-color: #0d9488;
     }
 
     * {
@@ -79,7 +79,7 @@
       background: var(--bg);
       background-image: var(--bg-gradient);
       color: var(--text-primary);
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       line-height: 1.6;
       min-height: 100vh;
       display: flex;
@@ -486,8 +486,8 @@
 
     /* Job Card Styling */
     .discovered-job-card {
-      background: rgba(30, 41, 59, 0.25);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.015);
+      border: 1px solid var(--card-border);
       border-radius: 14px;
       padding: 18px;
       display: flex;
@@ -499,9 +499,9 @@
 
     .discovered-job-card:hover {
       transform: translateY(-4px);
-      border-color: rgba(99, 102, 241, 0.25);
-      background: rgba(30, 41, 59, 0.4);
-      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.08);
+      border-color: var(--accent);
+      background: rgba(255, 255, 255, 0.035);
+      box-shadow: 0 12px 30px rgba(16, 185, 129, 0.08);
     }
 
     .visit-website-link:hover {
@@ -605,6 +605,53 @@
         </div>
 
         <div class="form-group">
+          <label>Resume Template Preset</label>
+          <input type="hidden" id="templateId" value="minimal_ats">
+          <div class="template-selector-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 8px;">
+            <div class="template-card active" data-value="minimal_ats" style="border: 1px solid var(--accent); border-radius: 10px; padding: 12px; background: rgba(99, 102, 241, 0.05); cursor: pointer; transition: all 0.2s;">
+              <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Minimal ATS</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Arial • Centered Header • Black Accent • 0.75" Margins</div>
+            </div>
+            <div class="template-card" data-value="modern_tech" style="border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; background: rgba(255, 255, 255, 0.01); cursor: pointer; transition: all 0.2s;">
+              <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Modern Tech</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Calibri • Left Aligned • Teal Accent • 0.6" Margins</div>
+            </div>
+            <div class="template-card" data-value="classic_executive" style="border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; background: rgba(255, 255, 255, 0.01); cursor: pointer; transition: all 0.2s;">
+              <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Classic Executive</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Georgia • Centered Header • Navy Accent • 0.75" Margins</div>
+            </div>
+            <div class="template-card" data-value="compact_onepage" style="border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; background: rgba(255, 255, 255, 0.01); cursor: pointer; transition: all 0.2s;">
+              <div style="font-weight: 700; font-size: 13px; color: var(--text-primary);">Compact One-Page</div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Arial • Right Aligned • Slate Accent • 0.5" Margins</div>
+            </div>
+        </div>
+
+        <!-- Live Template Preview Container -->
+        <div class="template-preview-container" style="border: 1px solid var(--card-border); border-radius: 12px; padding: 16px; margin-top: 14px; background: rgba(255,255,255,0.01); display: flex; flex-direction: column; align-items: center; text-align: center; position: relative;">
+          <div style="position: absolute; top: 12px; right: 12px; background: #22c55e; color: white; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 9999px; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);">
+            ✓ 100% ATS Compliant
+          </div>
+          
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); align-self: flex-start; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">Live Layout Preview</div>
+          
+          <div class="preview-image-wrapper" style="width: 150px; height: 200px; border-radius: 6px; overflow: hidden; border: 1px solid var(--card-border); box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: all 0.3s; cursor: zoom-in;" id="btnExpandPreview">
+            <img id="templatePreviewImg" src="/static/templates/previews/minimal_ats.png" style="width: 100%; height: 100%; object-fit: cover;" alt="Template Preview">
+          </div>
+          
+          <div id="templateDesc" style="font-size: 12px; color: var(--text-muted); margin-top: 12px; line-height: 1.4;">
+            High-density single-column centered layout for technical roles.
+          </div>
+        </div>
+
+        <!-- Zoom Modal for Expand Preview -->
+        <div id="previewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+          <div style="position: relative; max-width: 90%; max-height: 90%;">
+            <button id="btnCloseModal" style="position: absolute; top: -40px; right: 0; background: none; border: none; color: white; font-size: 32px; cursor: pointer;" type="button">&times;</button>
+            <img id="modalPreviewImg" src="" style="max-width: 450px; width: 100%; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); border: 2px solid rgba(255,255,255,0.1);" alt="Expanded Template Preview">
+          </div>
+        </div>
+
+        <div class="form-group">
           <label>Upload Resume (PDF, DOCX, TXT, MD)</label>
           <div class="file-upload-container">
             <span class="upload-icon">📁</span>
@@ -689,7 +736,7 @@
         </div>
 
         <div class="actions-bar">
-          <button id="approve" class="secondary" type="button">Approve Gate 3</button>
+          <button id="approve" class="secondary" type="button">Approve</button>
           <button id="send" class="success" type="button" disabled>Send Email</button>
         </div>
       </div>
@@ -729,6 +776,75 @@
       setTheme(currentTheme === "light" ? "dark" : "light");
     });
 
+    const templatesMetadata = {
+      "minimal_ats": {
+        "description": "High-density single-column centered layout for technical roles.",
+        "preview_url": "/static/templates/previews/minimal_ats.png"
+      },
+      "modern_tech": {
+        "description": "Clean sans-serif left-aligned layout with modern teal accents.",
+        "preview_url": "/static/templates/previews/modern_tech.png"
+      },
+      "classic_executive": {
+        "description": "Elegant serif centered layout with deep navy highlights.",
+        "preview_url": "/static/templates/previews/classic_executive.png"
+      },
+      "compact_onepage": {
+        "description": "Ultra-condensed layout with narrow margins for single page fitment.",
+        "preview_url": "/static/templates/previews/compact_onepage.png"
+      }
+    };
+
+    // Template cards selection
+    document.querySelectorAll(".template-card").forEach(card => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll(".template-card").forEach(c => {
+          c.classList.remove("active");
+          c.style.borderColor = "var(--card-border)";
+          c.style.background = "rgba(255, 255, 255, 0.01)";
+        });
+        card.classList.add("active");
+        card.style.borderColor = "var(--accent)";
+        card.style.background = "rgba(99, 102, 241, 0.05)";
+        
+        const templateVal = card.getAttribute("data-value");
+        document.getElementById("templateId").value = templateVal;
+        
+        const meta = templatesMetadata[templateVal];
+        if (meta) {
+          document.getElementById("templatePreviewImg").src = meta.preview_url;
+          document.getElementById("templateDesc").textContent = meta.description;
+        }
+      });
+    });
+
+    // Expand preview modal triggers
+    const expandBtn = document.getElementById("btnExpandPreview");
+    const previewModal = document.getElementById("previewModal");
+    const modalImg = document.getElementById("modalPreviewImg");
+    const closeModal = document.getElementById("btnCloseModal");
+
+    expandBtn.addEventListener("click", () => {
+      const currentSrc = document.getElementById("templatePreviewImg").src;
+      modalImg.src = currentSrc;
+      previewModal.style.display = "flex";
+      setTimeout(() => {
+        previewModal.style.opacity = "1";
+      }, 10);
+    });
+
+    function hideModal() {
+      previewModal.style.opacity = "0";
+      setTimeout(() => {
+        previewModal.style.display = "none";
+      }, 300);
+    }
+
+    closeModal.addEventListener("click", hideModal);
+    previewModal.addEventListener("click", (e) => {
+      if (e.target === previewModal) hideModal();
+    });
+
     // Set step progress
     function updateStep(stepName) {
       const steps = ['intake', 'discovery', 'optimization', 'outreach'];
@@ -741,15 +857,21 @@
           item.style.color = 'var(--accent)';
           number.style.background = 'var(--accent-gradient)';
           number.style.color = '#fff';
+          number.style.boxShadow = '0 0 12px rgba(16, 185, 129, 0.45)';
           if (idx > 0) {
-            document.getElementById('line-' + step).style.background = 'var(--accent)';
+            const line = document.getElementById('line-' + step);
+            line.style.background = 'var(--accent)';
+            line.style.boxShadow = '0 0 6px var(--accent)';
           }
         } else {
           item.style.color = 'var(--text-muted)';
           number.style.background = 'rgba(255,255,255,0.06)';
           number.style.color = 'var(--text-muted)';
+          number.style.boxShadow = 'none';
           if (idx > 0) {
-            document.getElementById('line-' + step).style.background = 'rgba(255,255,255,0.06)';
+            const line = document.getElementById('line-' + step);
+            line.style.background = 'rgba(255,255,255,0.06)';
+            line.style.boxShadow = 'none';
           }
         }
       });
@@ -816,13 +938,13 @@
 
         const title = job.title || "Untitled Role";
         const company = job.company || "Unknown Company";
-        const desc = job.description ? (job.description.substring(0, 160) + "...") : "No description available.";
+        const desc = job.description ? (job.description.length > 180 ? job.description.substring(0, 177) + "..." : job.description) : "No description available.";
         
         // Render badges for skills
         let badgesHtml = "";
         if (job.extracted_skills && job.extracted_skills.length > 0) {
           badgesHtml = job.extracted_skills.map(s => `
-            <span style="font-size: 10px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.15); padding: 2px 6px; border-radius: 6px; color: #a5b4fc; font-weight: 500;">
+            <span style="font-size: 10px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.15); padding: 3px 8px; border-radius: 9999px; color: #34d399; font-weight: 500; font-family: 'Space Grotesk', sans-serif; display: inline-block;">
               ${s}
             </span>
           `).join("");
@@ -832,7 +954,7 @@
 
         // Render Visit Site link
         const visitBtn = job.job_url 
-          ? `<a href="${job.job_url}" target="_blank" class="visit-website-link" style="display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 8px; color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; background: rgba(99, 102, 241, 0.03); transition: all 0.2s;">🌐 Site</a>`
+          ? `<a href="${job.job_url}" target="_blank" class="visit-website-link" style="display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 8px; color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; background: rgba(16, 185, 129, 0.03); transition: all 0.2s;">View Site</a>`
           : "";
 
         card.innerHTML = `
@@ -941,6 +1063,7 @@
 
         const preferredLocations = document.getElementById("preferredLocations").value.split(",").map(item => item.trim()).filter(Boolean);
         const workMode = document.getElementById("workMode").value;
+        const templateId = document.getElementById("templateId").value;
 
         // 1. Create or Update Profile
         const profile = await post("/intake/profile", {
@@ -950,6 +1073,7 @@
           skills_to_highlight: skills,
           preferred_locations: preferredLocations,
           work_mode: workMode,
+          template_id: templateId,
           experience_level: "mid",
           metadata: {}
         });
@@ -965,6 +1089,7 @@
           formData.append("user_email", email);
           formData.append("full_name", fullName);
           formData.append("version_label", "dashboard");
+          formData.append("template_id", templateId);
 
           status.innerHTML = `<div class="spinner"></div> Uploading resume, searching jobs via ${source.replace('_', ' ')}...`;
           const resumeResponse = await fetch(api + "/resume/upload-file?source=" + source, {
@@ -995,6 +1120,7 @@
             full_name: fullName,
             resume_text: baselineText,
             version_label: "auto-generated",
+            template_id: templateId,
             metadata: {"auto_generated": true}
           });
         }

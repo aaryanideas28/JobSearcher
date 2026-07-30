@@ -48,6 +48,7 @@ class ResumeVersion(Base):
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
     optimized_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     ats_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    template_id: Mapped[str] = mapped_column(String(100), nullable=False, default="minimal_ats")
     metadata_json: Mapped[dict[str, Any]] = mapped_column(json_column_type(), default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -87,6 +88,7 @@ class CandidatePreference(Base):
     preferred_locations: Mapped[list[str]] = mapped_column(json_column_type(), default=list, nullable=False)
     work_mode: Mapped[str | None] = mapped_column(String(100), nullable=True, default="Any")
     work_authorization: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    template_id: Mapped[str] = mapped_column(String(100), nullable=False, default="minimal_ats")
     metadata_json: Mapped[dict[str, Any]] = mapped_column(json_column_type(), default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

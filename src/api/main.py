@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import get_settings
 from database.connection import init_db
-from src.api.routes import auth, dashboard, hitl, intake, jobs, outreach, resume, workflow
+from src.api.routes import auth, dashboard, hitl, intake, jobs, outreach, resume, workflow, templates
 
 settings = get_settings()
 init_db()
@@ -34,6 +34,7 @@ app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs"])
 app.include_router(workflow.router, prefix="/api/v1/workflow", tags=["workflow"])
 app.include_router(hitl.router, prefix="/api/v1/hitl", tags=["human-in-the-loop"])
 app.include_router(outreach.router, prefix="/api/v1/outreach", tags=["outreach"])
+app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
 from fastapi.staticfiles import StaticFiles
 
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])

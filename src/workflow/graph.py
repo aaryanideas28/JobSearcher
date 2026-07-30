@@ -92,12 +92,13 @@ async def resume_optimizer_node(state: AgentState) -> AgentState:
             import json
             state["optimized_resume_json"] = json.loads(optimization.optimized_resume)
         except Exception:
-            state["optimized_resume_json"] = {
-                "contact": {"name": "Candidate"},
-                "summary": "Optimized Resume",
-                "skills": skills,
-                "experience": [{"company": state.get("target_company") or "Target Company", "role": target_role, "description": optimization.optimized_resume}]
-            }
+            from src.utils.docx_compiler import DocxCompiler
+            parsed_resume = DocxCompiler().parse_resume_text_to_dict(optimization.optimized_resume)
+            if not parsed_resume.get("contact", {}).get("name") or parsed_resume["contact"]["name"] == "Candidate":
+                orig_json = state.get("user_resume_json") or state.get("extracted_facts") or {}
+                orig_name = orig_json.get("contact", {}).get("name") or "Candidate"
+                parsed_resume["contact"]["name"] = orig_name
+            state["optimized_resume_json"] = parsed_resume
 
     # 2. Compile PDF
     user_id = state.get("user_id") or 1

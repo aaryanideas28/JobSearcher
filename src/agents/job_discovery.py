@@ -9,6 +9,76 @@ from typing import Any
 import httpx
 
 from src.config.settings import get_settings
+import re
+from urllib.parse import urlparse
+
+def sanitize_job_card(card_data: dict[str, Any]) -> dict[str, Any]:
+    """Sanitize job title, company name, and description content using regex pipelines."""
+    title_key = "title" if "title" in card_data else ("role_title" if "role_title" in card_data else None)
+    company_key = "company" if "company" in card_data else ("company_name" if "company_name" in card_data else None)
+    desc_key = "description" if "description" in card_data else ("job_description" if "job_description" in card_data else None)
+    url_key = "url" if "url" in card_data else ("job_url" if "job_url" in card_data else None)
+
+    # 1. Clean Title
+    if title_key and card_data.get(title_key):
+        title = str(card_data[title_key]).strip()
+        
+        # Remove SEO noise like page numbers, job counts, site names
+        title = re.sub(r'^page\s+\d+(\s+of\s+\d+)?\s*[-|–|:|•]\s*', '', title, flags=re.IGNORECASE)
+        title = re.sub(r'^[\d,]+\s+jobs?\s*[-|–|:|•]\s*', '', title, flags=re.IGNORECASE)
+        title = re.sub(r'^[\d,]+\s+vacancy?\s*[-|–|:|•]\s*', '', title, flags=re.IGNORECASE)
+        
+        # Remove site suffixes like "| Shine.com", "- Indeed", "| Naukri"
+        title = re.sub(r'\s*[-|–|•|]\s*(shine\.com|indeed|naukri|linkedin|glassdoor|monster|simplyhired|careerbuilder|ziprecruiter|workday|job|jobs)\b.*$', '', title, flags=re.IGNORECASE)
+        
+        # Strip other piping separators and clean whitespace
+        parts = [p.strip() for p in re.split(r'\s+[-–]\s+|\s*[|•]\s*', title) if p.strip()]
+        if parts:
+            noise_words = {"page", "jobs", "hiring", "apply", "careers", "career", "shine"}
+            filtered_parts = [p for p in parts if not any(nw in p.lower() for nw in noise_words)]
+            title = filtered_parts[0] if filtered_parts else parts[0]
+            
+        card_data[title_key] = title.strip()
+
+    # 2. Clean Company Name
+    if company_key and card_data.get(company_key):
+        company = str(card_data[company_key]).strip()
+        
+        loc_patterns = [
+            r'\b(bangalore|bengaluru|mumbai|delhi|noida|gurgaon|hyderabad|pune|chennai|karnataka|maharashtra)\b',
+            r'\b(london|ny|nyc|sf|san francisco|california|texas|uk|us|usa|india|germany|singapore)\b',
+            r'\b(remote|hybrid|on-site|onsite)\b'
+        ]
+        for pattern in loc_patterns:
+            company = re.sub(pattern, '', company, flags=re.IGNORECASE)
+            
+        company = re.sub(r'^[,\s\-:|–|•|]+|[,\s\-:|–|•|]+$', '', company)
+        company = re.sub(r'\s+', ' ', company).strip()
+        
+        if not company or company.lower() in {"unknown company", "unknown", "hiring company", "company"}:
+            if url_key and card_data.get(url_key):
+                try:
+                    domain = urlparse(card_data[url_key]).netloc
+                    domain = domain.replace("www.", "")
+                    parts = domain.split('.')
+                    company = parts[0].title() if parts else "Hiring Team"
+                except Exception:
+                    company = "Hiring Team"
+            else:
+                company = "Hiring Team"
+                
+        card_data[company_key] = company
+
+    # 3. Truncate description to clean 2-line snippet (e.g. ~180 characters)
+    if desc_key and card_data.get(desc_key):
+        desc = str(card_data[desc_key]).strip()
+        desc = re.sub(r'<[^>]+>', ' ', desc)
+        desc = re.sub(r'\s+', ' ', desc).strip()
+        if len(desc) > 180:
+            desc = desc[:177].rsplit(' ', 1)[0].rstrip(",.-:; ") + "..."
+        card_data[desc_key] = desc
+
+    return card_data
 
 
 @dataclass(slots=True)
@@ -282,6 +352,17 @@ class JobDiscoveryAgent:
                     pass
 
         await asyncio.gather(*(enrich(p) for p in postings))
+        for p in postings:
+            card_dict = {
+                "title": p.title,
+                "company": p.company,
+                "description": p.description,
+                "url": p.url
+            }
+            sanitized = sanitize_job_card(card_dict)
+            p.title = sanitized["title"]
+            p.company = sanitized["company"]
+            p.description = sanitized["description"]
         return postings
 
     def _infer_company(self, title: str) -> str:

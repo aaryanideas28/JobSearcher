@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS resume_versions (
     raw_text TEXT NOT NULL,
     optimized_text TEXT,
     ats_score DOUBLE PRECISION,
+    template_id VARCHAR(100) NOT NULL DEFAULT 'minimal_ats',
     metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS candidate_preferences (
     preferred_locations JSONB NOT NULL DEFAULT '[]'::jsonb,
     work_mode VARCHAR(100) DEFAULT 'Any',
     work_authorization VARCHAR(255),
+    template_id VARCHAR(100) NOT NULL DEFAULT 'minimal_ats',
     metadata_json JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

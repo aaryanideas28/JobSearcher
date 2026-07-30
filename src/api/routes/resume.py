@@ -33,6 +33,7 @@ class ResumeUploadRequest(BaseModel):
     full_name: str = Field(default="Candidate", min_length=1)
     resume_text: str = Field(..., min_length=1)
     version_label: str = Field(default="original", min_length=1, max_length=100)
+    template_id: str = "minimal_ats"
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -124,6 +125,7 @@ async def upload_resume(
         user_id=user.id,
         version_label=payload.version_label,
         raw_text=payload.resume_text,
+        template_id=payload.template_id,
         metadata_json={"source": "api_upload", **payload.metadata},
     )
     db.add(resume_version)
@@ -148,6 +150,7 @@ async def upload_resume_file(
     db: Annotated[Session, Depends(get_db)],
     full_name: Annotated[str, Form(min_length=1)] = "Candidate",
     version_label: Annotated[str, Form(min_length=1, max_length=100)] = "uploaded",
+    template_id: Annotated[str, Form(min_length=1)] = "minimal_ats",
     source: str = "tavily",
 ) -> dict[str, Any]:
     """Upload a resume file, parse text, store the file, and create a resume version."""
@@ -176,6 +179,7 @@ async def upload_resume_file(
         user_id=user.id,
         version_label=version_label,
         raw_text=parsed.text,
+        template_id=template_id,
         metadata_json={
             "source": "file_upload",
             "original_filename": original_name,

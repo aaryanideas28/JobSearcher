@@ -425,7 +425,111 @@ class ResumeOptimizer:
         if "EDUCATION" in clean_text.upper() and "---" in clean_text and "PROJECTS" in clean_text.upper():
             return clean_text.strip()
 
-        contact_line = f"{email} | Phone: {phone} | Location: {location}"
+        from src.utils.docx_compiler import DocxCompiler
+        orig_data = DocxCompiler().parse_resume_text_to_dict(resume_text)
+        
+        if orig_data.get("contact", {}).get("name") and orig_data["contact"]["name"] != "Candidate":
+            name = orig_data["contact"]["name"]
+        
+        email = orig_data.get("contact", {}).get("email") or email
+        phone = orig_data.get("contact", {}).get("phone") or phone
+        location = orig_data.get("contact", {}).get("location") or location
+        
+        # Build contact links
+        contact_info = [
+            val for val in [email, phone, location]
+            if val and str(val).strip()
+        ]
+        contact_line = " | ".join(contact_info)
+        
+        # Dynamic Education Section
+        edu_blocks = []
+        for edu in orig_data.get("education") or []:
+            edu_lines = []
+            inst = edu.get("institution") or ""
+            loc_val = edu.get("location") or ""
+            if inst:
+                inst_line = f"{inst} | {loc_val}" if loc_val else inst
+                edu_lines.append(inst_line)
+            deg = edu.get("degree") or ""
+            dates_val = edu.get("dates") or ""
+            grade_val = edu.get("grade") or ""
+            if deg:
+                deg_line = deg
+                if dates_val:
+                    deg_line += f" ({dates_val})"
+                if grade_val:
+                    deg_line += f" | Grade: {grade_val}"
+                edu_lines.append(deg_line)
+            if edu_lines:
+                edu_blocks.append("\n".join(edu_lines))
+                
+        if edu_blocks:
+            education_section = "\n\n".join(edu_blocks)
+        else:
+            education_section = (
+                "Veermata Jijabai Technological Institute (VJTI) | Mumbai, India\n"
+                "B.Tech in Computer Engineering — First Year (Expected Graduation: May 2029)\n"
+                "Relevant Coursework: Data Structures & Algorithms, Linear Algebra, Probability & Statistics, Multivariable Calculus"
+            )
+
+        # Dynamic Achievements Section
+        ach_blocks = []
+        for a_item in orig_data.get("achievements") or []:
+            ach_blocks.append(f"• {a_item}")
+        if ach_blocks:
+            achievements_section = "\n".join(ach_blocks)
+        else:
+            achievements_section = (
+                "• Rank 3356 / 13,000+ in ICPC Prelims (National Level) among top competitive programming teams across India.\n"
+                "• CodeChef Rating 1114 | Solved 100+ algorithmic problems across competitive programming platforms.\n"
+                "• Codeforces Max Rating 1021 | Demonstrated strong problem-solving and mathematical reasoning under contest constraints."
+            )
+
+        # Dynamic Projects Section
+        proj_blocks = []
+        for proj in orig_data.get("projects") or []:
+            proj_lines = []
+            proj_name = proj.get("name") or "Project"
+            proj_tech = proj.get("technologies") or ""
+            proj_dates = proj.get("dates") or ""
+            
+            p1_line = proj_name
+            if proj_tech:
+                p1_line += f" | {proj_tech}"
+            if proj_dates:
+                p1_line += f" ({proj_dates})"
+            proj_lines.append(p1_line)
+            
+            for b in proj.get("bullets") or []:
+                proj_lines.append(f"• {b}")
+                
+            if proj_lines:
+                proj_blocks.append("\n".join(proj_lines))
+                
+        if proj_blocks:
+            projects_section = "\n\n".join(proj_blocks)
+        else:
+            projects_section = (
+                f"FastAPI AI Resume & Job Search Platform | {', '.join(combined_skills[:5])}\n"
+                f"{p1}\n"
+                f"{p2}\n"
+                f"{p3}\n"
+                f"{p4}"
+            )
+
+        # Dynamic Extracurriculars Section
+        ext_blocks = []
+        for ex_item in orig_data.get("extracurriculars") or []:
+            ext_blocks.append(f"• {ex_item}")
+        if ext_blocks:
+            ext_section = "\n".join(ext_blocks)
+        else:
+            ext_section = (
+                "• Competitive Programmer: Active participant in Codeforces and CodeChef contests, focusing on algorithm optimization and graph theory.\n"
+                "• Open Source Contributor: Developed and maintained software projects on GitHub with clean architecture and automated tests."
+            )
+
         links_line = " | ".join(links)
 
         return (
@@ -435,28 +539,19 @@ class ResumeOptimizer:
             "---\n"
             "EDUCATION\n"
             "---\n"
-            "Veermata Jijabai Technological Institute (VJTI) | Mumbai, India\n"
-            "B.Tech in Computer Engineering — First Year (Expected Graduation: May 2029)\n"
-            "Relevant Coursework: Data Structures & Algorithms, Linear Algebra, Probability & Statistics, Multivariable Calculus\n\n"
+            f"{education_section}\n\n"
             "---\n"
             "ACHIEVEMENTS\n"
             "---\n"
-            "• Rank 3356 / 13,000+ in ICPC Prelims (National Level) among top competitive programming teams across India.\n"
-            "• CodeChef Rating 1114 | Solved 100+ algorithmic problems across competitive programming platforms.\n"
-            "• Codeforces Max Rating 1021 | Demonstrated strong problem-solving and mathematical reasoning under contest constraints.\n\n"
+            f"{achievements_section}\n\n"
             "---\n"
             "PROJECTS\n"
             "---\n"
-            f"FastAPI AI Resume & Job Search Platform | {', '.join(combined_skills[:5])}\n"
-            f"{p1}\n"
-            f"{p2}\n"
-            f"{p3}\n"
-            f"{p4}\n\n"
+            f"{projects_section}\n\n"
             "---\n"
             "EXTRACURRICULARS\n"
             "---\n"
-            "• Competitive Programmer: Active participant in Codeforces and CodeChef contests, focusing on algorithm optimization and graph theory.\n"
-            "• Open Source Contributor: Developed and maintained software projects on GitHub with clean architecture and automated tests.\n\n"
+            f"{ext_section}\n\n"
             "---\n"
             "SKILLS\n"
             "---\n"

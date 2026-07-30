@@ -34,6 +34,7 @@ class CandidatePreferenceRequest(BaseModel):
     work_mode: str | None = "Any"
     experience_level: str | None = None
     work_authorization: str | None = None
+    template_id: str = "minimal_ats"
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -100,6 +101,7 @@ async def create_or_update_candidate_profile(
         preferred_locations=payload.preferred_locations,
         work_mode=payload.work_mode,
         work_authorization=payload.work_authorization,
+        template_id=payload.template_id,
         metadata_json=payload.metadata,
     )
     db.add(preference)
@@ -114,6 +116,7 @@ async def create_or_update_candidate_profile(
         "skills_to_highlight": preference.skills_to_highlight,
         "preferred_locations": preference.preferred_locations,
         "work_mode": getattr(preference, "work_mode", "Any"),
+        "template_id": getattr(preference, "template_id", "minimal_ats"),
         "next_steps": [
             "POST /api/v1/resume/upload-file or /api/v1/resume/upload",
             "POST /api/v1/jobs/manual",
@@ -147,5 +150,6 @@ async def get_latest_candidate_profile(
         "preferred_locations": preference.preferred_locations,
         "work_mode": getattr(preference, "work_mode", "Any"),
         "work_authorization": preference.work_authorization,
+        "template_id": getattr(preference, "template_id", "minimal_ats"),
         "metadata": preference.metadata_json,
     }

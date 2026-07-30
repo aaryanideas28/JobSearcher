@@ -141,24 +141,13 @@ async def manual_optimize_and_draft(
         import json
         optimized_resume_json = json.loads(optimization.optimized_resume)
     except Exception:
-        pass
-
-    if not isinstance(optimized_resume_json, dict):
-        optimized_resume_json = {
-            "contact": {"name": resume_version.user.full_name, "email": resume_version.user.email},
-            "summary": "Optimized Resume",
-            "skills": selected_skills,
-            "experience": [
-                {
-                    "company": job_target.company_name,
-                    "role": job_target.role_title,
-                    "start_date": "",
-                    "end_date": "",
-                    "description": optimization.optimized_resume
-                }
-            ],
-            "education": []
-        }
+        from src.utils.docx_compiler import DocxCompiler
+        parsed_resume = DocxCompiler().parse_resume_text_to_dict(optimization.optimized_resume)
+        if not parsed_resume.get("contact", {}).get("name") or parsed_resume["contact"]["name"] == "Candidate":
+            parsed_resume["contact"]["name"] = resume_version.user.full_name
+        if not parsed_resume.get("contact", {}).get("email"):
+            parsed_resume["contact"]["email"] = resume_version.user.email
+        optimized_resume_json = parsed_resume
 
     docx_compiler = DocxCompiler()
     docx_path = docx_compiler.compile_docx_state({
@@ -167,7 +156,8 @@ async def manual_optimize_and_draft(
         "target_role": target_role,
         "target_company": job_target.company_name,
         "user_id": resume_version.user_id,
-        "attempt_count": resume_version.id
+        "attempt_count": resume_version.id,
+        "template_id": getattr(resume_version, "template_id", "minimal_ats")
     }, docx_path)
 
     attached_path = docx_path.resolve()
