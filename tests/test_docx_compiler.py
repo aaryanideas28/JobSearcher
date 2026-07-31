@@ -140,26 +140,26 @@ def test_docx_compiler_presets() -> None:
     # 1. Test minimal_ats
     p1 = compiler.render_official_ats_docx(candidate_data, user_id=1, version=1, template_id="minimal_ats")
     doc1 = docx.Document(p1)
-    assert doc1.sections[0].top_margin.inches == 0.75
-    assert doc1.styles['Normal'].font.name == 'Arial'
+    assert doc1.sections[0].top_margin.inches == 0.5
+    assert doc1.styles['Normal'].font.name == 'Times New Roman'
 
     # 2. Test modern_tech
     p2 = compiler.render_official_ats_docx(candidate_data, user_id=1, version=2, template_id="modern_tech")
     doc2 = docx.Document(p2)
-    assert doc2.sections[0].top_margin.inches == 0.6
-    assert doc2.styles['Normal'].font.name == 'Calibri'
+    assert doc2.sections[0].top_margin.inches == 0.5
+    assert doc2.styles['Normal'].font.name == 'Times New Roman'
 
     # 3. Test classic_executive
     p3 = compiler.render_official_ats_docx(candidate_data, user_id=1, version=3, template_id="classic_executive")
     doc3 = docx.Document(p3)
-    assert doc3.sections[0].top_margin.inches == 0.75
-    assert doc3.styles['Normal'].font.name == 'Georgia'
+    assert doc3.sections[0].top_margin.inches == 0.5
+    assert doc3.styles['Normal'].font.name == 'Times New Roman'
 
     # 4. Test compact_onepage
     p4 = compiler.render_official_ats_docx(candidate_data, user_id=1, version=4, template_id="compact_onepage")
     doc4 = docx.Document(p4)
     assert doc4.sections[0].top_margin.inches == 0.5
-    assert doc4.styles['Normal'].font.name == 'Arial'
+    assert doc4.styles['Normal'].font.name == 'Times New Roman'
 
 
 def test_fix_concatenated_skills() -> None:
@@ -200,9 +200,9 @@ def test_layout_separation() -> None:
     assert "SENIOR BACKEND ENGINEER" in paragraphs
     assert "ALEX MERCERSENIOR BACKEND ENGINEER" not in paragraphs
     
-    # Verify name is 18pt and role is 12pt
+    # Verify name is 20pt and role is 12pt
     name_p = next(p for p in doc.paragraphs if p.text == "ALEX MERCER")
-    assert name_p.runs[0].font.size == docx.shared.Pt(18)
+    assert name_p.runs[0].font.size == docx.shared.Pt(20)
     assert name_p.runs[0].bold is True
     
     role_p = next(p for p in doc.paragraphs if p.text == "SENIOR BACKEND ENGINEER")
@@ -223,12 +223,12 @@ def test_layout_separation() -> None:
     contact_p = next(p for p in doc.paragraphs if "alex@example.com" in p.text)
     assert contact_p.text == "alex@example.com"
     
-    # Assert paragraph spacing on bullets is 1.5 Pt
+    # Assert paragraph spacing on bullets is 1 Pt
     bullets = [p for p in doc.paragraphs if p.style.name == "List Bullet"]
     for b in bullets:
         assert b.paragraph_format.space_before == docx.shared.Pt(0)
-        assert b.paragraph_format.space_after == docx.shared.Pt(1.5)
-        assert b.paragraph_format.line_spacing == 1.15
+        assert b.paragraph_format.space_after == docx.shared.Pt(1)
+        assert b.paragraph_format.line_spacing == 1.0
 
 
 

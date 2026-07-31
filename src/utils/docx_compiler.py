@@ -20,42 +20,58 @@ GENERATED_DIR = WORKSPACE_ROOT / "generated"
 
 TEMPLATE_STYLES: dict[str, dict[str, Any]] = {
     "minimal_ats": {
-        "font_family": "Arial",
+        "font_family": "Times New Roman",
         "accent_color": RGBColor(0, 0, 0),
         "accent_color_hex": "000000",
         "header_align": 1,  # Center
-        "margins": 0.75,
-        "space_before": 0,
-        "space_after": 4,
+        "margins": 0.5,
+        "space_before": 8,
+        "space_after": 2,
     },
     "modern_tech": {
-        "font_family": "Calibri",
-        "accent_color": RGBColor(13, 148, 136),  # Teal
-        "accent_color_hex": "0D9488",
-        "header_align": 0,  # Left
-        "margins": 0.6,
-        "space_before": 2,
-        "space_after": 6,
+        "font_family": "Times New Roman",
+        "accent_color": RGBColor(0, 0, 0),
+        "accent_color_hex": "000000",
+        "header_align": 1,  # Center
+        "margins": 0.5,
+        "space_before": 8,
+        "space_after": 2,
     },
     "classic_executive": {
-        "font_family": "Georgia",
-        "accent_color": RGBColor(30, 58, 138),  # Navy
-        "accent_color_hex": "1E3A8A",
+        "font_family": "Times New Roman",
+        "accent_color": RGBColor(0, 0, 0),
+        "accent_color_hex": "000000",
         "header_align": 1,  # Center
-        "margins": 0.75,
-        "space_before": 4,
-        "space_after": 8,
+        "margins": 0.5,
+        "space_before": 8,
+        "space_after": 2,
     },
     "compact_onepage": {
-        "font_family": "Arial",
-        "accent_color": RGBColor(71, 85, 105),  # Slate
-        "accent_color_hex": "475569",
-        "header_align": 2,  # Right
+        "font_family": "Times New Roman",
+        "accent_color": RGBColor(0, 0, 0),
+        "accent_color_hex": "000000",
+        "header_align": 1,  # Center
         "margins": 0.5,
-        "space_before": 0,
+        "space_before": 8,
         "space_after": 2,
     }
 }
+
+
+def add_markdown_paragraph_runs(p: docx.Paragraph, text: str, font_name: str, font_size_pt: float, base_color = None):
+    import re
+    parts = re.split(r'(\*\*[^*]+\*\*)', text)
+    for part in parts:
+        if part.startswith("**") and part.endswith("**"):
+            val = part[2:-2]
+            run = p.add_run(val)
+            run.bold = True
+        else:
+            run = p.add_run(part)
+        run.font.name = font_name
+        run.font.size = Pt(font_size_pt)
+        if base_color:
+            run.font.color.rgb = base_color
 
 
 def fix_concatenated_skills(skill_str: str) -> str:
@@ -135,7 +151,6 @@ class DocxCompiler:
         """Enforce strict tight paragraph and line spacing for all paragraphs in the document."""
         style_config = TEMPLATE_STYLES.get(template_id, TEMPLATE_STYLES["minimal_ats"])
         for idx, p in enumerate(doc.paragraphs):
-            # Skip the first few paragraphs if they are part of the header (up to contact line)
             is_header = False
             if idx < 4:
                 text_lower = p.text.lower()
@@ -145,7 +160,7 @@ class DocxCompiler:
                     is_header = True
             
             if is_header:
-                p.paragraph_format.line_spacing = 1.15
+                p.paragraph_format.line_spacing = 1.0
                 continue
                 
             style_name = p.style.name if p.style else ""
@@ -160,21 +175,20 @@ class DocxCompiler:
             
             if is_heading:
                 p.paragraph_format.space_before = Pt(8)
-                p.paragraph_format.space_after = Pt(3)
-                p.paragraph_format.line_spacing = 1.15
+                p.paragraph_format.space_after = Pt(2)
+                p.paragraph_format.line_spacing = 1.0
             elif style_name == "List Bullet":
                 p.paragraph_format.space_before = Pt(0)
-                p.paragraph_format.space_after = Pt(1.5)
-                p.paragraph_format.line_spacing = 1.15
+                p.paragraph_format.space_after = Pt(1)
+                p.paragraph_format.line_spacing = 1.0
             elif p.paragraph_format.tab_stops:
                 p.paragraph_format.space_before = Pt(4)
-                p.paragraph_format.space_after = Pt(0)
-                p.paragraph_format.line_spacing = 1.15
+                p.paragraph_format.space_after = Pt(1.5)
+                p.paragraph_format.line_spacing = 1.0
             else:
-                # Body and other general paragraphs
                 p.paragraph_format.space_before = Pt(0)
-                p.paragraph_format.space_after = Pt(2)
-                p.paragraph_format.line_spacing = 1.15
+                p.paragraph_format.space_after = Pt(1.5)
+                p.paragraph_format.line_spacing = 1.0
 
     def _add_section_title(self, doc: docx.Document, title: str, template_id: str = "minimal_ats"):
         """Add uppercase section title with horizontal divider line."""
@@ -182,18 +196,16 @@ class DocxCompiler:
         font_name = style_config["font_family"]
         accent_color = style_config["accent_color"]
         accent_hex = style_config["accent_color_hex"]
-        space_before_pt = style_config["space_before"]
-        space_after_pt = style_config["space_after"]
 
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(space_before_pt + 8)
-        p.paragraph_format.space_after = Pt(space_after_pt)
+        p.paragraph_format.space_before = Pt(8)
+        p.paragraph_format.space_after = Pt(2)
         p.paragraph_format.keep_with_next = True
         
-        run = p.add_run(title)
+        run = p.add_run(title.upper())
         run.bold = True
         run.font.name = font_name
-        run.font.size = Pt(11.5)
+        run.font.size = Pt(11)
         run.font.color.rgb = accent_color
 
         # XML Paragraph bottom border for perfect solid lines using template color
@@ -453,7 +465,7 @@ class DocxCompiler:
         run_name = header_p.add_run(name)
         run_name.bold = True
         run_name.font.name = font_name
-        run_name.font.size = Pt(18)
+        run_name.font.size = Pt(20)
         run_name.font.color.rgb = accent_color
 
         if subtitle:
@@ -474,16 +486,18 @@ class DocxCompiler:
         
         linkedin = contact.get("linkedin") or ""
         if linkedin:
-            linkedin = linkedin.replace("https://", "").replace("http://", "").replace("linkedin.com/in/", "").replace("linkedin.com/", "")
-            linkedin = f"in/{linkedin}"
+            linkedin = linkedin.replace("https://", "").replace("http://", "")
+            if not linkedin.startswith("linkedin.com/"):
+                linkedin = f"linkedin.com/in/{linkedin}" if not linkedin.startswith("in/") else f"linkedin.com/{linkedin}"
             
         github = contact.get("github") or ""
         if github:
-            github = github.replace("https://", "").replace("http://", "").replace("github.com/", "")
-            github = f"github.com/{github}"
+            github = github.replace("https://", "").replace("http://", "")
+            if not github.startswith("github.com/"):
+                github = f"github.com/{github}"
             
         contact_info = [
-            val for val in [email, phone, location, linkedin, github]
+            val for val in [phone, email, location, linkedin, github]
             if val and str(val).strip()
         ]
         contact_line = " | ".join(contact_info)
@@ -495,31 +509,29 @@ class DocxCompiler:
             run_contact = contact_p.add_run(contact_line)
             run_contact.font.name = font_name
             run_contact.font.size = Pt(9.5)
-            run_contact.font.color.rgb = RGBColor(0x4B, 0x55, 0x63)
+            run_contact.font.color.rgb = RGBColor(0x11, 0x11, 0x11)
 
         # 2. PROFILE SUMMARY
-        summary = candidate_data.get("summary")
-        if summary:
+        summary = candidate_data.get("summary") or candidate_data.get("professional_summary")
+        if summary and str(summary).strip():
             self._add_section_title(doc, "Profile Summary", template_id=template_id)
             p = doc.add_paragraph()
-            p.paragraph_format.space_before = Pt(4)
-            p.paragraph_format.space_after = Pt(8)
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(1.5)
+            p.paragraph_format.line_spacing = 1.0
             p.alignment = 3  # Justify
-            run_sum = p.add_run(summary)
-            run_sum.font.name = font_name
-            run_sum.font.size = Pt(10)
+            add_markdown_paragraph_runs(p, str(summary).strip(), font_name, 10)
 
         # 3. PROFESSIONAL EXPERIENCE
-        experience = candidate_data.get("experience")
-        if experience:
-            self._add_section_title(doc, "Professional Experience", template_id=template_id)
-            margin_val = style_config.get("margins", 0.75)
-            tab_pos = Inches(8.5 - (2 * margin_val))
+        experience = candidate_data.get("work_experience") or candidate_data.get("experience")
+        if experience and len(experience) > 0:
+            self._add_section_title(doc, "Work Experience", template_id=template_id)
+            tab_pos = Inches(7.5)
             for exp in experience:
-                role = exp.get("role") or "Software Engineer"
+                role = exp.get("role") or exp.get("title") or "Software Engineer"
                 company = exp.get("company") or ""
                 loc = exp.get("location") or ""
-                dates = exp.get("dates") or exp.get("start_date") or ""
+                dates = exp.get("dates") or exp.get("duration") or ""
                 if not dates:
                     start = exp.get("start_date") or ""
                     end = exp.get("end_date") or ""
@@ -527,8 +539,9 @@ class DocxCompiler:
                 
                 # Line 1: Role (Bold) & Dates (Right-aligned using dynamic tab stop)
                 p1 = doc.add_paragraph()
-                p1.paragraph_format.space_before = Pt(6)
-                p1.paragraph_format.space_after = Pt(0)
+                p1.paragraph_format.space_before = Pt(4)
+                p1.paragraph_format.space_after = Pt(1.5)
+                p1.paragraph_format.line_spacing = 1.0
                 p1.paragraph_format.keep_with_next = True
                 p1.paragraph_format.tab_stops.add_tab_stop(tab_pos, WD_TAB_ALIGNMENT.RIGHT)
                 
@@ -539,16 +552,18 @@ class DocxCompiler:
                 
                 if dates:
                     p1.add_run("\t")
-                    run_dates = p1.add_run(dates)
+                    run_dates = p1.add_run(str(dates))
                     run_dates.font.name = font_name
                     run_dates.font.size = Pt(9.5)
-                    run_dates.font.color.rgb = RGBColor(0x37, 0x41, 0x51)
+                    run_dates.font.color.rgb = RGBColor(0x11, 0x11, 0x11)
 
                 # Line 2: Company Name (Italic) | Location
                 p2 = doc.add_paragraph()
                 p2.paragraph_format.space_before = Pt(0)
-                p2.paragraph_format.space_after = Pt(3)
+                p2.paragraph_format.space_after = Pt(1.5)
+                p2.paragraph_format.line_spacing = 1.0
                 p2.paragraph_format.keep_with_next = True
+                p2.paragraph_format.tab_stops.add_tab_stop(tab_pos, WD_TAB_ALIGNMENT.RIGHT)
                 
                 run_comp = p2.add_run(company)
                 run_comp.italic = True
@@ -557,249 +572,303 @@ class DocxCompiler:
                 run_comp.font.color.rgb = accent_color
                 
                 if loc:
-                    p2.add_run("  |  ")
+                    p2.add_run("\t")
                     run_loc = p2.add_run(loc)
                     run_loc.font.name = font_name
                     run_loc.font.size = Pt(9.5)
-                    run_loc.font.color.rgb = RGBColor(0x4B, 0x55, 0x63)
+                    run_loc.font.color.rgb = RGBColor(0x11, 0x11, 0x11)
                 
                 bullets = exp.get("bullets") or []
-                desc = exp.get("description") or ""
+                desc = exp.get("description") or exp.get("responsibilities_achievements") or ""
+                tech_used = exp.get("tech_used") or exp.get("technologies") or ""
+                
                 if not bullets and desc:
                     bullets = [b.strip().lstrip("-*•·").strip() for b in desc.split("\n") if b.strip()]
                     
                 for b in bullets:
                     bp = doc.add_paragraph(style="List Bullet")
                     bp.paragraph_format.space_before = Pt(0)
-                    bp.paragraph_format.space_after = Pt(2)
+                    bp.paragraph_format.space_after = Pt(1)
+                    bp.paragraph_format.line_spacing = 1.0
+                    add_markdown_paragraph_runs(bp, b, font_name, 9.5)
+
+                if tech_used:
+                    bp = doc.add_paragraph(style="List Bullet")
+                    bp.paragraph_format.space_before = Pt(0)
+                    bp.paragraph_format.space_after = Pt(1)
+                    bp.paragraph_format.line_spacing = 1.0
                     
-                    m = re.match(r'^(\*\*[^*]+\*\*)(.*)$', b)
-                    if m:
-                        verb = m.group(1).replace("**", "")
-                        rest = m.group(2)
-                        rv = bp.add_run(verb)
-                        rv.bold = True
-                        rv.font.name = font_name
-                        rv.font.size = Pt(9.5)
-                        rr = bp.add_run(rest)
-                        rr.font.name = font_name
-                        rr.font.size = Pt(9.5)
-                    else:
-                        words = b.split(" ", 1)
-                        if len(words) > 1 and re.match(r'^[A-Z][a-z]+$', words[0]):
-                            rv = bp.add_run(words[0] + " ")
-                            rv.bold = True
-                            rv.font.name = font_name
-                            rv.font.size = Pt(9.5)
-                            rr = bp.add_run(words[1])
-                            rr.font.name = font_name
-                            rr.font.size = Pt(9.5)
-                        else:
-                            run_b = bp.add_run(b)
-                            run_b.font.name = font_name
-                            run_b.font.size = Pt(9.5)
+                    run_label = bp.add_run("Technologies used: ")
+                    run_label.bold = True
+                    run_label.font.name = font_name
+                    run_label.font.size = Pt(9.5)
+                    
+                    tech_str = ", ".join(tech_used) if isinstance(tech_used, list) else str(tech_used)
+                    run_val = bp.add_run(tech_str)
+                    run_val.font.name = font_name
+                    run_val.font.size = Pt(9.5)
 
         # 4. SKILLS
-        skills = candidate_data.get("skills")
+        skills = candidate_data.get("technical_skills") or candidate_data.get("skills")
         if skills:
-            self._add_section_title(doc, "Skills", template_id=template_id)
-            for sk in skills:
-                bp = doc.add_paragraph(style="List Bullet")
-                bp.paragraph_format.space_before = Pt(0)
-                bp.paragraph_format.space_after = Pt(2)
+            has_data = False
+            if isinstance(skills, dict):
+                has_data = any(v for v in skills.values())
+            elif isinstance(skills, list):
+                has_data = len(skills) > 0
+            else:
+                has_data = bool(skills)
                 
-                if isinstance(sk, dict) and "category" in sk:
-                    cat = sk["category"]
-                    items = ", ".join(sk["items"]) if isinstance(sk["items"], list) else str(sk["items"])
-                    items = fix_concatenated_skills(items)
-                    
-                    run_cat = bp.add_run(f"{cat}: ")
-                    run_cat.bold = True
-                    run_cat.font.name = font_name
-                    run_cat.font.size = Pt(9.5)
-                    
-                    run_items = bp.add_run(items)
-                    run_items.font.name = font_name
-                    run_items.font.size = Pt(9.5)
-                else:
-                    sk_str = fix_concatenated_skills(str(sk))
-                    run_sk = bp.add_run(sk_str)
-                    run_sk.font.name = font_name
-                    run_sk.font.size = Pt(9.5)
+            if has_data:
+                self._add_section_title(doc, "Skills", template_id=template_id)
+                if isinstance(skills, dict):
+                    for cat, items in skills.items():
+                        if not items:
+                            continue
+                        p = doc.add_paragraph()
+                        p.paragraph_format.space_before = Pt(0)
+                        p.paragraph_format.space_after = Pt(1.5)
+                        p.paragraph_format.line_spacing = 1.0
+                        
+                        run_cat = p.add_run(f"{cat}: ")
+                        run_cat.bold = True
+                        run_cat.font.name = font_name
+                        run_cat.font.size = Pt(9.5)
+                        
+                        items_str = ", ".join(items) if isinstance(items, list) else str(items)
+                        items_str = fix_concatenated_skills(items_str)
+                        run_items = p.add_run(items_str)
+                        run_items.font.name = font_name
+                        run_items.font.size = Pt(9.5)
+                elif isinstance(skills, list):
+                    if len(skills) > 0 and isinstance(skills[0], dict) and ("category" in skills[0] or "name" in skills[0]):
+                        for sk in skills:
+                            if not isinstance(sk, dict):
+                                continue
+                            cat = sk.get("category") or sk.get("name") or ""
+                            items = sk.get("items") or sk.get("value") or []
+                            if not cat or not items:
+                                continue
+                            p = doc.add_paragraph()
+                            p.paragraph_format.space_before = Pt(0)
+                            p.paragraph_format.space_after = Pt(1.5)
+                            p.paragraph_format.line_spacing = 1.0
+                            
+                            run_cat = p.add_run(f"{cat}: ")
+                            run_cat.bold = True
+                            run_cat.font.name = font_name
+                            run_cat.font.size = Pt(9.5)
+                            
+                            items_str = ", ".join(items) if isinstance(items, list) else str(items)
+                            items_str = fix_concatenated_skills(items_str)
+                            run_items = p.add_run(items_str)
+                            run_items.font.name = font_name
+                            run_items.font.size = Pt(9.5)
+                    else:
+                        flat_items = []
+                        for sk in skills:
+                            if isinstance(sk, dict):
+                                items = sk.get("items") or []
+                                if isinstance(items, list):
+                                    flat_items.extend([str(x) for x in items])
+                                else:
+                                    flat_items.append(str(items))
+                            else:
+                                flat_items.append(str(sk))
+                        
+                        p = doc.add_paragraph()
+                        p.paragraph_format.space_before = Pt(0)
+                        p.paragraph_format.space_after = Pt(1.5)
+                        p.paragraph_format.line_spacing = 1.0
+                        
+                        items_str = ", ".join(flat_items)
+                        items_str = fix_concatenated_skills(items_str)
+                        run_items = p.add_run(items_str)
+                        run_items.font.name = font_name
+                        run_items.font.size = Pt(9.5)
 
         # 5. EDUCATION
         education = candidate_data.get("education")
-        if education:
+        if education and len(education) > 0:
             self._add_section_title(doc, "Education", template_id=template_id)
-            margin_val = style_config.get("margins", 0.75)
-            tab_pos = Inches(8.5 - (2 * margin_val))
+            tab_pos = Inches(7.5)
             for edu in education:
-                deg = edu.get("degree") or "Degree"
+                deg = edu.get("degree") or edu.get("specialization") or "Degree"
+                if edu.get("specialization") and edu.get("degree") and edu.get("specialization") != edu.get("degree"):
+                    deg = f"{edu['degree']} in {edu['specialization']}"
                 inst = edu.get("institution") or edu.get("school") or ""
                 loc = edu.get("location") or ""
-                dates = edu.get("dates") or edu.get("start_date") or ""
+                dates = edu.get("dates") or edu.get("graduation_year") or ""
                 if not dates:
                     start = edu.get("start_date") or ""
                     end = edu.get("end_date") or ""
                     dates = f"{start} - {end}" if start and end else (start or end)
-                grade = edu.get("grade") or edu.get("gpa") or ""
+                grade = edu.get("grade") or edu.get("gpa") or edu.get("cgpa_percentage") or ""
                 
-                # Line 1: Degree (Bold) | Dates (Right-aligned using dynamic tab stop)
+                # Single paragraph line for Education
                 p1 = doc.add_paragraph()
                 p1.paragraph_format.space_before = Pt(4)
-                p1.paragraph_format.space_after = Pt(0)
+                p1.paragraph_format.space_after = Pt(1.5)
+                p1.paragraph_format.line_spacing = 1.0
                 p1.paragraph_format.keep_with_next = True
                 p1.paragraph_format.tab_stops.add_tab_stop(tab_pos, WD_TAB_ALIGNMENT.RIGHT)
                 
-                run_deg = p1.add_run(deg)
-                run_deg.bold = True
-                run_deg.font.name = font_name
-                run_deg.font.size = Pt(10.5)
+                # Left side
+                run_inst = p1.add_run(inst)
+                run_inst.bold = True
+                run_inst.font.name = font_name
+                run_inst.font.size = Pt(10)
                 
-                if dates:
-                    p1.add_run("\t")
-                    run_dates = p1.add_run(dates)
-                    run_dates.font.name = font_name
-                    run_dates.font.size = Pt(9.5)
-                    run_dates.font.color.rgb = RGBColor(0x37, 0x41, 0x51)
-                
-                # Line 2: Institution & Location | Grade (if present)
-                p2 = doc.add_paragraph()
-                p2.paragraph_format.space_before = Pt(0)
-                p2.paragraph_format.space_after = Pt(4)
-                p2.paragraph_format.keep_with_next = True
-                
-                if inst:
-                    inst_loc = f"{inst}, {loc}" if loc else inst
-                    run_inst = p2.add_run(inst_loc)
-                    run_inst.italic = True
-                    run_inst.font.name = font_name
-                    run_inst.font.size = Pt(10)
-                    run_inst.font.color.rgb = accent_color
+                if deg:
+                    p1.add_run(" | ")
+                    run_deg = p1.add_run(deg)
+                    run_deg.italic = True
+                    run_deg.font.name = font_name
+                    run_deg.font.size = Pt(10)
                     
+                # Right side
+                p1.add_run("\t")
+                
+                right_parts = []
+                if dates:
+                    right_parts.append(str(dates))
                 if grade:
-                    p2.add_run("  |  ")
-                    run_grade = p2.add_run(grade)
-                    run_grade.bold = True
-                    run_grade.font.name = font_name
-                    run_grade.font.size = Pt(9.5)
-                    run_grade.font.color.rgb = RGBColor(0x4B, 0x55, 0x63)
+                    grade_str = f"CGPA: {grade}" if not str(grade).lower().startswith(("cgpa", "grade")) else str(grade)
+                    right_parts.append(grade_str)
+                    
+                right_line = " | ".join(right_parts)
+                if right_line:
+                    run_right = p1.add_run(right_line)
+                    run_right.italic = True
+                    run_right.font.name = font_name
+                    run_right.font.size = Pt(10)
+                    run_right.font.color.rgb = RGBColor(0x11, 0x11, 0x11)
 
         # 6. PROJECTS
         projects = candidate_data.get("projects")
-        if projects:
+        if projects and len(projects) > 0:
             self._add_section_title(doc, "Projects", template_id=template_id)
-            margin_val = style_config.get("margins", 0.75)
-            tab_pos = Inches(8.5 - (2 * margin_val))
+            tab_pos = Inches(7.5)
             for proj in projects:
-                name = proj.get("name") or "Project"
-                tech = proj.get("technologies") or ""
-                dates = proj.get("dates") or ""
-                link = proj.get("link") or proj.get("url") or ""
+                name = proj.get("name") or proj.get("title") or "Project"
+                tech = proj.get("technologies") or proj.get("tech_used") or ""
+                dates = proj.get("dates") or proj.get("date") or ""
+                link = proj.get("link") or proj.get("url") or proj.get("demo_link") or ""
                 
-                # Line 1: Project Name (Bold) | Dates (Right-aligned using dynamic tab stop)
+                # Single paragraph line for Project Header
                 p1 = doc.add_paragraph()
                 p1.paragraph_format.space_before = Pt(4)
-                p1.paragraph_format.space_after = Pt(0)
+                p1.paragraph_format.space_after = Pt(1.5)
+                p1.paragraph_format.line_spacing = 1.0
                 p1.paragraph_format.keep_with_next = True
                 p1.paragraph_format.tab_stops.add_tab_stop(tab_pos, WD_TAB_ALIGNMENT.RIGHT)
                 
+                # Left side: **Name** | *Technologies*
                 run_name = p1.add_run(name)
                 run_name.bold = True
                 run_name.font.name = font_name
-                run_name.font.size = Pt(10.5)
-                
-                if dates:
-                    p1.add_run("\t")
-                    run_dates = p1.add_run(dates)
-                    run_dates.font.name = font_name
-                    run_dates.font.size = Pt(9.5)
-                    run_dates.font.color.rgb = RGBColor(0x37, 0x41, 0x51)
-                
-                # Line 2: Technologies | Link
-                p2 = doc.add_paragraph()
-                p2.paragraph_format.space_before = Pt(0)
-                p2.paragraph_format.space_after = Pt(3)
-                p2.paragraph_format.keep_with_next = True
+                run_name.font.size = Pt(10)
                 
                 if tech:
-                    tech_clean = fix_concatenated_skills(tech)
-                    run_tech = p2.add_run(tech_clean)
+                    p1.add_run(" | ")
+                    tech_clean = ", ".join(tech) if isinstance(tech, list) else str(tech)
+                    tech_clean = fix_concatenated_skills(tech_clean)
+                    run_tech = p1.add_run(tech_clean)
                     run_tech.italic = True
                     run_tech.font.name = font_name
-                    run_tech.font.size = Pt(9.5)
-                    run_tech.font.color.rgb = RGBColor(0x4B, 0x55, 0x63)
+                    run_tech.font.size = Pt(10)
                     
+                # Right side: *Dates* | *Link*
+                p1.add_run("\t")
+                
+                right_parts = []
+                if dates:
+                    right_parts.append(str(dates))
                 if link:
-                    if tech:
-                        p2.add_run("  |  ")
-                    run_link = p2.add_run("Link")
-                    run_link.underline = True
-                    run_link.font.name = font_name
-                    run_link.font.size = Pt(10)
-                    run_link.font.color.rgb = accent_color
+                    right_parts.append(link)
+                    
+                right_line = " | ".join(right_parts)
+                if right_line:
+                    run_right = p1.add_run(right_line)
+                    run_right.italic = True
+                    run_right.font.name = font_name
+                    run_right.font.size = Pt(10)
+                    run_right.font.color.rgb = RGBColor(0x11, 0x11, 0x11)
                 
                 bullets = proj.get("bullets") or []
-                desc = proj.get("description") or ""
+                desc = proj.get("description") or proj.get("contribution_impact") or ""
                 if not bullets and desc:
                     bullets = [b.strip().lstrip("-*•·").strip() for b in desc.split("\n") if b.strip()]
                     
                 for b in bullets:
                     bp = doc.add_paragraph(style="List Bullet")
                     bp.paragraph_format.space_before = Pt(0)
-                    bp.paragraph_format.space_after = Pt(2)
-                    
-                    m = re.match(r'^(\*\*[^*]+\*\*)(.*)$', b)
-                    if m:
-                        verb = m.group(1).replace("**", "")
-                        rest = m.group(2)
-                        rv = bp.add_run(verb)
-                        rv.bold = True
-                        rv.font.name = font_name
-                        rv.font.size = Pt(9.5)
-                        rr = bp.add_run(rest)
-                        rr.font.name = font_name
-                        rr.font.size = Pt(9.5)
-                    else:
-                        words = b.split(" ", 1)
-                        if len(words) > 1 and re.match(r'^[A-Z][a-z]+$', words[0]):
-                            rv = bp.add_run(words[0] + " ")
-                            rv.bold = True
-                            rv.font.name = font_name
-                            rv.font.size = Pt(9.5)
-                            rr = bp.add_run(words[1])
-                            rr.font.name = font_name
-                            rr.font.size = Pt(9.5)
-                        else:
-                            run_b = bp.add_run(b)
-                            run_b.font.name = font_name
-                            run_b.font.size = Pt(9.5)
+                    bp.paragraph_format.space_after = Pt(1)
+                    bp.paragraph_format.line_spacing = 1.0
+                    add_markdown_paragraph_runs(bp, b, font_name, 9.5)
 
         # 7. ONLINE COURSES & CERTIFICATIONS
-        certs = candidate_data.get("certifications") or candidate_data.get("courses")
-        if certs:
+        certs = candidate_data.get("certifications")
+        if certs and len(certs) > 0:
             self._add_section_title(doc, "Online Courses & Certifications", template_id=template_id)
             for c in certs:
                 bp = doc.add_paragraph(style="List Bullet")
                 bp.paragraph_format.space_before = Pt(0)
-                bp.paragraph_format.space_after = Pt(2)
+                bp.paragraph_format.space_after = Pt(1)
+                bp.paragraph_format.line_spacing = 1.0
                 
-                run_c = bp.add_run(str(c))
-                run_c.font.name = font_name
-                run_c.font.size = Pt(9.5)
+                if isinstance(c, dict):
+                    name = c.get("name") or c.get("title") or ""
+                    issuer = c.get("issuer") or c.get("authority") or c.get("institution") or ""
+                    date = c.get("date") or c.get("year") or ""
+                    link = c.get("credential_link") or c.get("link") or c.get("url") or ""
+                    
+                    run_name = bp.add_run(name)
+                    run_name.bold = True
+                    run_name.font.name = font_name
+                    run_name.font.size = Pt(9.5)
+                    
+                    rest_str = ""
+                    if issuer:
+                        rest_str += f" — {issuer}"
+                    if date:
+                        rest_str += f" ({date})"
+                    if rest_str:
+                        run_rest = bp.add_run(rest_str)
+                        run_rest.font.name = font_name
+                        run_rest.font.size = Pt(9.5)
+                        
+                    if link:
+                        run_sep = bp.add_run(" | ")
+                        run_sep.font.name = font_name
+                        run_sep.font.size = Pt(9.5)
+                        
+                        run_link = bp.add_run(link)
+                        run_link.font.name = font_name
+                        run_link.font.size = Pt(9.5)
+                        run_link.font.color.rgb = accent_color
+                        run_link.underline = True
+                else:
+                    run_c = bp.add_run(str(c))
+                    run_c.font.name = font_name
+                    run_c.font.size = Pt(9.5)
 
         # 8. ACHIEVEMENTS & EXTRACURRICULAR
         ach = candidate_data.get("achievements")
-        if ach:
+        if ach and len(ach) > 0:
             self._add_section_title(doc, "Achievements & Extracurricular", template_id=template_id)
             for a in ach:
                 bp = doc.add_paragraph(style="List Bullet")
                 bp.paragraph_format.space_before = Pt(0)
-                bp.paragraph_format.space_after = Pt(2)
+                bp.paragraph_format.space_after = Pt(1)
+                bp.paragraph_format.line_spacing = 1.0
                 
-                run_a = bp.add_run(str(a))
-                run_a.font.name = font_name
-                run_a.font.size = Pt(9.5)
+                if isinstance(a, dict):
+                    text_val = a.get("description") or a.get("title") or a.get("name") or a.get("details") or str(a)
+                else:
+                    text_val = str(a)
+                    
+                add_markdown_paragraph_runs(bp, text_val, font_name, 9.5)
 
         self._enforce_tight_spacing(doc, template_id=template_id)
         output_filename = f"final_documents/user_{user_id}/resume_v{version}.docx"
@@ -829,23 +898,13 @@ class DocxCompiler:
         attempt = state.get("attempt_count") or 1
         template_id = state.get("template_id") or "minimal_ats"
         
-        template_file = TEMPLATE_DIR / f"{template_id}.docx"
-        
-        if template_file.exists():
-            doc = docx.Document(str(template_file))
-            self._render_docx_template(doc, resume, template_id)
-            dest_path = self._workspace_path(output_path)
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
-            doc.save(str(dest_path))
-            return dest_path
-        else:
-            abs_path_str = self.render_official_ats_docx(resume, user_id, attempt, template_id=template_id)
-            dest_path = self._workspace_path(output_path)
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
-            if str(dest_path.resolve()) != abs_path_str:
-                import shutil
-                shutil.copy2(abs_path_str, str(dest_path.resolve()))
-            return dest_path
+        abs_path_str = self.render_official_ats_docx(resume, user_id, attempt, template_id=template_id)
+        dest_path = self._workspace_path(output_path)
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        if str(dest_path.resolve()) != abs_path_str:
+            import shutil
+            shutil.copy2(abs_path_str, str(dest_path.resolve()))
+        return dest_path
 
     def _render_docx_template(self, doc: docx.Document, candidate_data: dict[str, Any], template_id: str) -> None:
         """Replace placeholders and dynamically expand lists/tables inside the loaded template document."""
