@@ -22,3 +22,7 @@ storage_workspace/final_documents/
 !storage_workspace/templates/
 .pytest_cache/
 .coverage
+
+# Database & Document files
+*.docx
+resume_automation.db
