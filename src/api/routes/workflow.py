@@ -89,7 +89,12 @@ async def manual_optimize_and_draft(
     outreach_agent = OutreachAgent()
 
     if not resume_version.raw_text or not resume_version.raw_text.strip():
-        # Synthesize a structured JSON resume from skills if no baseline exists
+        if payload.intake_mode == "upload" and not payload.structured_intake:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please select an intake option: Upload an existing resume OR fill out the 'Build from Scratch' form.",
+            )
+        # Synthesize a structured JSON resume from skills if building from scratch with skills
         resume_dict = await optimizer.build_resume_from_skills(selected_skills, target_role)
         import json
         optimization = OptimizationResult(
@@ -98,25 +103,7 @@ async def manual_optimize_and_draft(
             metadata={"routing": {"model_tier": "large", "model_name": "huggingface", "reason": "No baseline resume upload"}},
         )
     else:
-        from src.schemas.resume import validate_resume_info_density
-        from src.utils.docx_compiler import DocxCompiler
-        
-        parsed_dict = DocxCompiler().parse_resume_text_to_dict(resume_version.raw_text)
-        has_sufficient_info, missing_fields = validate_resume_info_density(parsed_dict)
-        
-        uploaded_ats = await ats_engine.combined_score(resume_version.raw_text, job_target.job_description)
-        uploaded_ats_score = uploaded_ats.score
-        if uploaded_ats_score <= 1.0:
-            uploaded_ats_score *= 100.0
-            
-        if uploaded_ats_score < 80 and not has_sufficient_info:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="The uploaded resume has an ATS score below 80% and has insufficient information. "
-                       "Optimization is not allowed to prevent generating fake/default information. "
-                       "Please use the 'build resume from scratch' option.",
-            )
-
+        # Proceed with resume optimization pipeline to boost ATS score to >85%
         optimization = await optimizer.optimize_resume(
             resume_text=resume_version.raw_text,
             job_description=job_target.job_description,

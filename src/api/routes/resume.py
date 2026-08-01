@@ -30,8 +30,9 @@ class ResumeUploadRequest(BaseModel):
     """JSON payload for creating a resume version."""
 
     user_email: str = Field(..., min_length=3)
-    full_name: str = Field(default="Candidate", min_length=1)
+    full_name: str | None = None
     resume_text: str = Field(..., min_length=1)
+    intake_mode: str | None = "upload"
     version_label: str = Field(default="original", min_length=1, max_length=100)
     template_id: str = "minimal_ats"
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -114,6 +115,14 @@ async def upload_resume(
     source: str = "tavily",
 ) -> dict[str, Any]:
     """Persist a resume text upload as a versioned resume record."""
+    from src.security.validation import validate_candidate_intake
+    validate_candidate_intake({
+        "intake_mode": payload.intake_mode or "upload",
+        "file_attached": bool(payload.resume_text.strip()),
+        "resume_text": payload.resume_text,
+        "email": payload.user_email,
+        "full_name": payload.full_name,
+    })
 
     user = db.query(User).filter(User.email == payload.user_email).one_or_none()
     if user is None:
@@ -148,12 +157,15 @@ async def upload_resume_file(
     file: Annotated[UploadFile, File(...)],
     user_email: Annotated[str, Form(..., min_length=3)],
     db: Annotated[Session, Depends(get_db)],
-    full_name: Annotated[str, Form(min_length=1)] = "Candidate",
+    full_name: Annotated[str | None, Form()] = None,
     version_label: Annotated[str, Form(min_length=1, max_length=100)] = "uploaded",
     template_id: Annotated[str, Form(min_length=1)] = "minimal_ats",
     source: str = "tavily",
 ) -> dict[str, Any]:
     """Upload a resume file, parse text, store the file, and create a resume version."""
+    from src.security.validation import validate_candidate_intake
+    if not file or not file.filename:
+        validate_candidate_intake({"intake_mode": "upload", "file_attached": False})
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     original_name = Path(file.filename or "resume.txt").name
@@ -371,10 +383,17 @@ async def calculate_ats(payload: CalculateATSRequest) -> dict[str, Any]:
     int_score = int(round(raw_score * 100)) if raw_score <= 1.0 else int(round(raw_score))
     int_score = max(0, min(100, int_score))
 
+    penalties = result.get("penalties", {})
+    weak_verbs = penalties.get("weak_verbs_found", [])
+
     return {
         "ats_score": int_score,
         "score": int_score,
         "missing_keywords": result.get("missing_keywords", []),
+        "missing_skills": result.get("missing_skills", []),
         "semantic_gaps": result.get("semantic_gaps", []),
+        "actionable_feedback": result.get("actionable_feedback", ""),
+        "penalties": penalties,
+        "weak_verbs": weak_verbs,
     }
 

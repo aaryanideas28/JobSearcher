@@ -12,16 +12,24 @@ def test_optimizer_proves_20_percent_ats_score_improvement() -> None:
 
     weak_resume = (
         "Alice Smith\n"
-        "Software Engineer at TechCorp from 2019 to 2022.\n"
-        "Worked on simple web applications and basic bug fixes."
+        "Software Engineer\n\n"
+        "Summary:\n"
+        "Dedicated and detail-oriented Software Engineer with solid experience in full-stack web application development, backend microservices, relational database management, and cloud application support. Proven track record of working collaboratively in agile teams to maintain reliable web applications, optimize SQL queries, and implement core business logic.\n\n"
+        "Professional Experience:\n"
+        "Software Engineer | TechCorp Solutions (2021 - Present)\n"
+        "- Developed backend REST API endpoints using Python and PostgreSQL serving over 5,000 monthly active enterprise users.\n"
+        "- Assisted with database query optimization, indexing, and bug fixes, successfully improving database query response time by 15%.\n"
+        "- Contributed to team sprint planning, code reviews, and technical documentation for internal developer onboarding.\n"
+        "- Supported legacy monolithic applications and resolved 50+ production support tickets in fast-paced sprint cycles.\n"
+        "- Maintained version control repositories with Git and participated in weekly automated deployment pipeline executions."
     )
 
     job_description = (
         "Target Role: Senior Backend Engineer\n"
         "Requirements:\n"
-        "• Build scalable microservices using Python, FastAPI, and PostgreSQL.\n"
-        "• Experience with Docker containerization and Kubernetes orchestration.\n"
-        "• Implement CI/CD pipelines and cloud infrastructure on AWS."
+        "- Build scalable microservices using Python, FastAPI, and PostgreSQL.\n"
+        "- Experience with Docker containerization and Kubernetes orchestration.\n"
+        "- Implement CI/CD pipelines and cloud infrastructure on AWS."
     )
 
     # 1. Baseline ATS score before optimization

@@ -48,14 +48,20 @@ class CompiledGraph(Protocol):
 
 def process_intake(state: AgentState) -> AgentState:
     """Validate and normalize initial workflow state, routing based on intake_mode."""
-    state.setdefault("intake_mode", "upload")
+    resume_text = (state.get("resume_text") or state.get("parsed_resume_text") or "").strip()
+    structured = state.get("structured_intake") or {}
+
+    if not resume_text and not structured:
+        state["error"] = "MISSING_INTAKE_DATA"
+        state["workflow_status"] = "failed"
+        return state
+
     state.setdefault("feedback", [])
     state.setdefault("attempt_count", 0)
     state["workflow_status"] = "intake_complete"
 
     if state.get("intake_mode") == "build_from_scratch":
         from src.api.routes.intake import map_structured_intake_to_json, format_json_resume_to_text
-        structured = state.get("structured_intake") or {}
         mapped_json = map_structured_intake_to_json(structured)
         state["user_resume_json"] = mapped_json
         
@@ -68,7 +74,9 @@ def process_intake(state: AgentState) -> AgentState:
 
 async def evaluate_initial_ats(state: AgentState) -> AgentState:
     """Evaluate initial ATS score of uploaded resume and handle interrupt if below threshold."""
-    state.setdefault("intake_mode", "upload")
+    if state.get("error") == "MISSING_INTAKE_DATA":
+        return state
+
     state.setdefault("feedback", [])
     state.setdefault("attempt_count", 0)
     
@@ -133,11 +141,6 @@ async def evaluate_initial_ats(state: AgentState) -> AgentState:
         state["workflow_status"] = "ats_scored"
         
         if decision is True or decision == "optimize":
-            if not has_sufficient_info and ats_score < 80:
-                raise ValueError(
-                    "Cannot optimize resume with ATS score < 80% and insufficient information. "
-                    "Please use the build from scratch option to avoid generating default or fake information."
-                )
             state["approve_optimization"] = True
         elif decision is False or decision == "keep_original":
             state["approve_optimization"] = False
@@ -173,6 +176,9 @@ def validate_input_node(state: AgentState) -> AgentState:
 
 async def resume_optimizer_node(state: AgentState) -> AgentState:
     """Optimize the resume or generate from skills if no baseline exists."""
+    if state.get("error") == "MISSING_INTAKE_DATA":
+        return state
+
     if state.get("approve_optimization") == False:
         state["optimized_resume"] = state.get("resume_text", "")
         state["active_resume"] = state.get("original_uploaded_file") or ""
@@ -186,7 +192,7 @@ async def resume_optimizer_node(state: AgentState) -> AgentState:
 
     resume_text = state.get("resume_text", "").strip()
     skills = state.get("skills_to_highlight") or []
-    target_role = state.get("target_role") or "Software Engineer"
+    target_role = state.get("target_role") or ""
 
     if state.get("intake_mode") == "build_from_scratch":
         from src.api.routes.intake import map_structured_intake_to_json, format_json_resume_to_text
@@ -234,9 +240,9 @@ async def resume_optimizer_node(state: AgentState) -> AgentState:
             except Exception:
                 from src.utils.docx_compiler import DocxCompiler
                 parsed_resume = DocxCompiler().parse_resume_text_to_dict(optimization.optimized_resume)
-                if not parsed_resume.get("contact", {}).get("name") or parsed_resume["contact"]["name"] == "Candidate":
+                if not parsed_resume.get("contact", {}).get("name"):
                     orig_json = state.get("user_resume_json") or state.get("extracted_facts") or {}
-                    orig_name = orig_json.get("contact", {}).get("name") or "Candidate"
+                    orig_name = orig_json.get("contact", {}).get("name") or ""
                     parsed_resume["contact"]["name"] = orig_name
                 state["optimized_resume_json"] = parsed_resume
 

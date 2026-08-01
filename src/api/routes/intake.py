@@ -27,11 +27,11 @@ class CandidatePreferenceRequest(BaseModel):
     """Candidate intake profile used to personalize resume optimization."""
 
     email: str = Field(..., min_length=3)
-    full_name: str = Field(default="Candidate", min_length=1)
+    full_name: str | None = None
     target_role: str = Field(..., min_length=1)
     skills_to_highlight: list[str] = Field(default_factory=list)
     preferred_locations: list[str] = Field(default_factory=list)
-    work_mode: str | None = "Any"
+    work_mode: str | None = None
     experience_level: str | None = None
     work_authorization: str | None = None
     template_id: str = "minimal_ats"

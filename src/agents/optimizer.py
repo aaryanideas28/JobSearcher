@@ -68,8 +68,18 @@ class ResumeOptimizer:
         text = re.sub(r"\bWork Experience\b", "PROJECTS", text, flags=re.IGNORECASE)
         return text.strip()
 
+    def clean_syntax(self, text: str) -> str:
+        """Strip markdown bolding (**) and em-dashes (—). Replace with standard hyphens (-)."""
+        if not text:
+            return ""
+        text = text.replace("—", " - ").replace("–", " - ").replace("&mdash;", " - ").replace("&ndash;", " - ")
+        text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+        text = re.sub(r"\s+-\s+", " - ", text)
+        return text.strip()
+
     def enforce_length_constraint(self, text: str, max_chars: int = 3000) -> str:
         """Enforce 1-page resume budget (< 3000 characters)."""
+        text = self.clean_syntax(text)
         if len(text) <= max_chars:
             return text
         trimmed = text[:max_chars]
@@ -81,6 +91,9 @@ class ResumeOptimizer:
 
     async def build_resume_from_skills(self, skills: List[str], target_role: str) -> Dict[str, Any]:
         """Synthesize a complete, professional JSON resume schema from a list of skills and target role."""
+        if not skills and not target_role:
+            raise ValueError("Cannot invoke optimizer on empty candidate context")
+
         import json
         from src.security.validation import JSONSchemaValidator
 
@@ -90,38 +103,18 @@ class ResumeOptimizer:
             "The JSON must strictly conform to the following schema structure, with no extra fields:\n"
             "{\n"
             '  "contact": {\n'
-            '    "name": "Candidate Name",\n'
-            '    "email": "candidate@example.com",\n'
-            '    "phone": "+1-123-456-7890",\n'
-            '    "location": "City, State",\n'
+            '    "name": "",\n'
+            '    "email": "",\n'
+            '    "phone": "",\n'
+            '    "location": "",\n'
             '    "links": []\n'
             "  },\n"
             '  "summary": "Summary text emphasizing targeted skills",\n'
             '  "skills": ["skill1", "skill2"],\n'
-            '  "experience": [\n'
-            "    {\n"
-            '      "company": "Company Name",\n'
-            '      "role": "Role Title",\n'
-            '      "start_date": "2020-01",\n'
-            '      "end_date": "Present",\n'
-            '      "description": "Key accomplishment bullet points using target skills"\n'
-            "    }\n"
-            "  ],\n"
-            '  "education": [\n'
-            "    {\n"
-            '      "institution": "University",\n'
-            '      "degree": "Bachelor of Science",\n'
-            '      "start_date": "2016-09",\n'
-            '      "end_date": "2020-05"\n'
-            "    }\n"
-            "  ],\n"
+            '  "experience": [],\n'
+            '  "education": [],\n'
             '  "certifications": [],\n'
-            '  "projects": [\n'
-            "    {\n"
-            '      "name": "Project name",\n'
-            '      "description": "Project details"\n'
-            "    }\n"
-            "  ]\n"
+            '  "projects": []\n'
             "}\n"
             "Return only valid JSON matching this schema."
         )
@@ -144,45 +137,18 @@ class ResumeOptimizer:
 
         return {
             "contact": {
-                "name": "Candidate",
-                "email": "candidate@example.com",
-                "phone": "+1-123-456-7890",
-                "location": "Remote",
+                "name": "",
+                "email": "",
+                "phone": "",
+                "location": "",
                 "links": [],
             },
-            "summary": f"Professional and results-driven specialist targeting the {target_role} role, with strong expertise in {', '.join(skills[:5])}.",
+            "summary": f"Specialist targeting {target_role} with expertise in {', '.join(skills)}." if (target_role or skills) else "",
             "skills": skills,
-            "experience": [
-                {
-                    "company": "Tech Solutions Inc.",
-                    "role": f"Senior {target_role}",
-                    "start_date": "2021-01",
-                    "end_date": "Present",
-                    "description": f"Led development and deployment of systems focusing on {', '.join(skills[:3])}. Optimized application performance and designed scalable architectures.",
-                },
-                {
-                    "company": "Innovation Labs",
-                    "role": target_role,
-                    "start_date": "2018-06",
-                    "end_date": "2020-12",
-                    "description": f"Developed key features and maintained platforms using {', '.join(skills[2:5] if len(skills) >= 5 else skills)}. Collaborated with cross-functional teams to deliver projects on time.",
-                },
-            ],
-            "education": [
-                {
-                    "institution": "University of Technology",
-                    "degree": "Bachelor of Science in Computer Science",
-                    "start_date": "2014-09",
-                    "end_date": "2018-05",
-                }
-            ],
+            "experience": [],
+            "education": [],
             "certifications": [],
-            "projects": [
-                {
-                    "name": f"Automated {target_role} System",
-                    "description": f"Designed and built a core system utilizing {', '.join(skills[:2])} to automate critical business workflows, improving efficiency by 30%.",
-                }
-            ],
+            "projects": [],
         }
 
     async def optimize_resume(
@@ -193,6 +159,9 @@ class ResumeOptimizer:
         target_role: str | None = None,
     ) -> OptimizationResult:
         """Generate an optimized resume with ATS feedback loop, entity locking, and length constraints."""
+        if not resume_text or len(resume_text.strip()) == 0:
+            raise ValueError("Cannot invoke optimizer on empty candidate context")
+
         # 1. Compute baseline ATS score
         baseline_score_obj = await self.ats_engine.combined_score(resume_text, job_description)
         old_score = baseline_score_obj.score

@@ -9,7 +9,83 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from src.workflow.state import AgentState
 
+from fastapi import HTTPException, status
+
 ModelT = TypeVar("ModelT", bound=BaseModel)
+
+
+class IntakeRequest(BaseModel):
+    intake_mode: str | None = None
+    file_attached: bool = False
+    parsed_text: str | None = None
+    full_name: str | None = None
+    email: str | None = None
+    technical_skills: list[str] | dict[str, Any] | None = None
+    work_experience: list[Any] | None = None
+    projects: list[Any] | None = None
+
+
+def validate_candidate_intake(payload: IntakeRequest | dict[str, Any] | None) -> None:
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please select an intake option: Upload an existing resume OR fill out the 'Build from Scratch' form.",
+        )
+    if isinstance(payload, dict):
+        intake_mode = payload.get("intake_mode")
+        file_attached = bool(
+            payload.get("file_attached")
+            or payload.get("file")
+            or payload.get("parsed_text")
+            or payload.get("resume_text")
+            or payload.get("has_file")
+            or payload.get("original_uploaded_file")
+        )
+        full_name = (
+            payload.get("full_name")
+            or (payload.get("contact_info", {}).get("name") if isinstance(payload.get("contact_info"), dict) else "")
+            or ""
+        ).strip()
+        email = (
+            payload.get("email")
+            or (payload.get("contact_info", {}).get("email") if isinstance(payload.get("contact_info"), dict) else "")
+            or ""
+        ).strip()
+        skills = payload.get("technical_skills") or payload.get("skills_to_highlight") or payload.get("skills") or []
+        exp = payload.get("work_experience") or payload.get("experience") or []
+        projects = payload.get("projects") or []
+    else:
+        intake_mode = payload.intake_mode
+        file_attached = payload.file_attached or bool(payload.parsed_text)
+        full_name = (payload.full_name or "").strip()
+        email = (payload.email or "").strip()
+        skills = payload.technical_skills or []
+        exp = payload.work_experience or []
+        projects = payload.projects or []
+
+    # CASE 1 (Unselected Mode)
+    if not intake_mode:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please select an intake option: Upload an existing resume OR fill out the 'Build from Scratch' form.",
+        )
+
+    # CASE 2 (Upload Mode Selected but File Missing)
+    if intake_mode == "upload" and not file_attached:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No resume file detected. Please upload a valid document (PDF/DOCX) or switch to 'Build from Scratch'.",
+        )
+
+    # CASE 3 (Build from Scratch Mode Selected but Fields Empty)
+    if intake_mode == "build_from_scratch":
+        has_skills = bool(skills)
+        has_exp_or_proj = bool(exp or projects)
+        if not full_name or not email or not has_skills or not has_exp_or_proj:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incomplete resume form. Please fill out your details in the 'Build from Scratch' form before proceeding.",
+            )
 
 
 @dataclass(slots=True)

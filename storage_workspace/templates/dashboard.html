@@ -21,46 +21,228 @@
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0B0F17;
-      --bg-gradient: radial-gradient(circle at 50% 0%, #121824 0%, #0B0F17 100%);
-      --card-bg: rgba(255, 255, 255, 0.03);
-      --card-border: #1E293B;
+      --bg: #1a0b36;
+      --bg-gradient: radial-gradient(circle at 50% 0%, #280e54 0%, #1a0b36 100%);
+      --card-bg: rgba(38, 15, 84, 0.45);
+      --card-border: rgba(124, 58, 237, 0.25);
       --text-primary: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent: #10b981;
-      --accent-gradient: linear-gradient(135deg, #10b981 0%, #8b5cf6 100%);
-      --accent-hover: linear-gradient(135deg, #059669 0%, #7c3aed 100%);
+      --text-muted: #c4b5fd;
+      --accent: #7c3aed;
+      --accent-gradient: linear-gradient(135deg, #7c3aed 0%, #059669 100%);
+      --accent-hover: linear-gradient(135deg, #6d28d9 0%, #047857 100%);
       --success: #10b981;
       --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
       --warning: #f59e0b;
       --error: #ef4444;
-      --input-bg: rgba(15, 23, 42, 0.6);
-      --focus-ring: rgba(16, 185, 129, 0.3);
-      --header-bg: rgba(11, 15, 23, 0.8);
-      --job-card-bg: rgba(255, 255, 255, 0.02);
-      --pre-bg: #070a13;
-      --pre-border: rgba(255, 255, 255, 0.05);
-      --pre-color: #34d399;
+      --input-bg: rgba(15, 23, 42, 0.7);
+      --focus-ring: rgba(124, 58, 237, 0.4);
+      --header-bg: rgba(26, 11, 54, 0.85);
+      --job-card-bg: rgba(46, 16, 101, 0.35);
+      --pre-bg: #0f0721;
+      --pre-border: rgba(124, 58, 237, 0.3);
+      --pre-color: #a7f3d0;
     }
 
     body.light-mode {
       color-scheme: light;
       --bg: #f8fafc;
       --bg-gradient: radial-gradient(circle at 50% 0%, #f1f5f9 0%, #f8fafc 100%);
-      --card-bg: rgba(255, 255, 255, 0.8);
-      --card-border: rgba(0, 0, 0, 0.08);
+      --card-bg: #ffffff;
+      --card-border: #cbd5e1;
       --text-primary: #0f172a;
       --text-muted: #475569;
-      --accent: #059669;
-      --accent-gradient: linear-gradient(135deg, #059669 0%, #7c3aed 100%);
-      --accent-hover: linear-gradient(135deg, #047857 0%, #6d28d9 100%);
-      --input-bg: rgba(255, 255, 255, 0.95);
-      --focus-ring: rgba(5, 150, 105, 0.2);
-      --header-bg: rgba(255, 255, 255, 0.85);
-      --job-card-bg: rgba(241, 245, 249, 0.85);
+      --accent: #6d28d9;
+      --accent-gradient: linear-gradient(135deg, #6d28d9 0%, #059669 100%);
+      --accent-hover: linear-gradient(135deg, #5b21b6 0%, #047857 100%);
+      --input-bg: #ffffff;
+      --focus-ring: rgba(109, 40, 217, 0.2);
+      --header-bg: #ffffff;
+      --job-card-bg: #f8fafc;
       --pre-bg: #f1f5f9;
-      --pre-border: rgba(0, 0, 0, 0.06);
-      --pre-color: #0d9488;
+      --pre-border: #cbd5e1;
+      --pre-color: #0f172a;
+    }
+
+    body.light-mode h1, 
+    body.light-mode h2, 
+    body.light-mode h3, 
+    body.light-mode h4, 
+    body.light-mode p, 
+    body.light-mode label,
+    body.light-mode .upload-text,
+    body.light-mode .empty-state p {
+      color: #0f172a !important;
+    }
+
+    body.light-mode header h1,
+    body.light-mode .logo-container h1,
+    body.light-mode header span {
+      color: #0f172a !important;
+      -webkit-text-fill-color: #0f172a !important;
+      background: none !important;
+    }
+
+    body.light-mode .status-message.error,
+    body.light-mode .validation-error-box {
+      color: #991b1b !important;
+      background: #fee2e2 !important;
+      border: 1px solid #f87171 !important;
+      border-left: 4px solid #dc2626 !important;
+    }
+
+    /* Scrollbar styling for Light & Dark Mode */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(124, 58, 237, 0.4);
+      border-radius: 5px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(124, 58, 237, 0.7);
+    }
+
+    body.light-mode ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    body.light-mode ::-webkit-scrollbar-thumb {
+      background: rgba(15, 23, 42, 0.3) !important;
+      border-radius: 5px;
+    }
+    body.light-mode ::-webkit-scrollbar-thumb:hover {
+      background: rgba(15, 23, 42, 0.6) !important;
+    }
+
+    .input-invalid {
+      border: 2px solid #ef4444 !important;
+      background: rgba(239, 68, 68, 0.06) !important;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3) !important;
+    }
+
+    body.light-mode header {
+      background: rgba(255, 255, 255, 0.95);
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    body.light-mode button.secondary {
+      background: #e2e8f0;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1;
+    }
+
+    body.light-mode button.secondary:hover:not(:disabled) {
+      background: #cbd5e1;
+    }
+
+    body.light-mode .template-card {
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+      background: #ffffff !important;
+    }
+
+    body.light-mode .template-card div {
+      color: #0f172a !important;
+    }
+
+    body.light-mode .accordion-header {
+      color: #0f172a !important;
+      background: #f1f5f9 !important;
+    }
+
+    body.light-mode .accordion-body {
+      color: #0f172a !important;
+      background: #ffffff !important;
+    }
+
+    body.light-mode .discovered-job-card {
+      color: #0f172a !important;
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    body.light-mode .discovered-job-card * {
+      color: #0f172a !important;
+    }
+
+    body.light-mode input[type="text"],
+    body.light-mode input[type="email"],
+    body.light-mode select,
+    body.light-mode textarea {
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    body.light-mode .review-card {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    body.light-mode .landing-card {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+
+    body.light-mode .landing-guide-card {
+      background: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+
+    body.light-mode .file-upload-container {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    body.light-mode .steps-indicator {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+    }
+
+    body.light-mode .step-item span:last-child {
+      color: #334155 !important;
+    }
+
+    body.light-mode #ats {
+      color: #0f172a !important;
+    }
+
+    body.light-mode section {
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    body.light-mode label {
+      color: #0f172a !important;
+    }
+
+    #submit-btn {
+      width: 100%;
+      margin-top: 14px;
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: var(--accent-gradient);
+      color: #ffffff !important;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #submit-btn:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 6px 22px rgba(16, 185, 129, 0.5);
+      transform: translateY(-2px);
     }
 
     * {
@@ -388,11 +570,18 @@
     .summary-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 12px;
+      gap: 16px;
       margin-bottom: 24px;
-      max-width: 240px;
-      margin-left: auto;
-      margin-right: auto;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .form-group select,
+    .form-group input[type="text"],
+    .form-group input[type="email"] {
+      width: 100%;
+      box-sizing: border-box;
+      height: 44px;
     }
 
     .metric-card {
@@ -472,9 +661,42 @@
     .actions-bar {
       display: flex;
       justify-content: flex-end;
-      gap: 12px;
-      margin-top: 10px;
-      padding-top: 12px;
+      align-items: center;
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .actions-bar button,
+    #approve,
+    #send {
+      min-width: 140px;
+      height: 44px;
+      padding: 10px 24px !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      font-family: 'Inter', -apple-system, sans-serif !important;
+      letter-spacing: 0.3px;
+      border-radius: 10px !important;
+      white-space: nowrap !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+      cursor: pointer;
+    }
+
+    body.light-mode .actions-bar button.secondary,
+    body.light-mode #approve {
+      background: #e2e8f0 !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+
+    body.light-mode .actions-bar button.secondary:hover,
+    body.light-mode #approve:hover {
+      background: #cbd5e1 !important;
     }
 
     /* Loading Spinner */
@@ -527,21 +749,176 @@
   </style>
 </head>
 <body>
-  <header>
-    <div class="logo-container">
-      <div class="logo-icon">S</div>
-      <h1>Stratum Job Agent</h1>
-    </div>
-    <div style="display: flex; align-items: center; gap: 16px;">
-      <button id="theme-toggle" class="secondary" style="padding: 8px 12px; font-size: 13px; border-radius: 8px; display: flex; align-items: center; gap: 6px; box-shadow: none;" type="button">
-        <span id="theme-toggle-icon">☀️</span> <span id="theme-toggle-text">Light Mode</span>
-      </button>
-      <div class="status-badge">
-        <div class="status-dot"></div>
-        Server Online
+  <!-- PAGE 1: LANDING PAGE VIEW (ENTRY POINT) -->
+  <div id="landing-page-view" style="display: block; width: 100%; min-height: 100vh;">
+    <!-- Landing Header -->
+    <header style="background: rgba(26, 11, 54, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(124, 58, 237, 0.3); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;">
+      <div class="logo-container" style="display: flex; align-items: center; gap: 12px; cursor: pointer;" onclick="showLandingPage()">
+        <div class="logo-icon" style="background: linear-gradient(135deg, #7c3aed 0%, #059669 100%); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: 'Space Grotesk', sans-serif; color: white;">S</div>
+        <h1 style="font-size: 22px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin: 0; background: linear-gradient(to right, #ffffff, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Stratum</h1>
       </div>
-    </div>
-  </header>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <button class="get-started-btn" onclick="window.showDashboardView(); return false;" style="padding: 10px 20px; background: linear-gradient(135deg, #7c3aed 0%, #059669 100%); color: white; border-radius: 12px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);">
+          Get Started
+        </button>
+      </div>
+    </header>
+
+    <!-- Hero Banner Section -->
+    <section class="landing-hero" style="max-width: 1200px; margin: 0 auto; padding: 64px 24px 48px 24px; text-align: center; background: transparent; border: none; box-shadow: none;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 9999px; background: rgba(124, 58, 237, 0.2); border: 1px solid rgba(124, 58, 237, 0.4); color: #c4b5fd; font-size: 12px; font-weight: 600; margin-bottom: 24px;">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite;"></span>
+        Penalty-Based ATS Scoring Engine v2.0
+      </div>
+      
+      <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 46px; font-weight: 800; color: #ffffff; line-height: 1.15; margin-bottom: 24px; max-width: 900px; margin-left: auto; margin-right: auto;">
+        Beat the ATS. Land More <span style="background: linear-gradient(to right, #c4b5fd, #f472b6, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">High-Paying</span> Tech Interviews.
+      </h1>
+
+      <p style="font-size: 18px; color: #c4b5fd; max-width: 680px; margin: 0 auto 36px auto; line-height: 1.6; opacity: 0.9;">
+        Stratum uses industry-standard penalty-based calibration to give you realistic ATS scores and actionable feedback—no false validation.
+      </p>
+
+      <button class="get-started-btn" onclick="window.showDashboardView(); return false;" style="padding: 16px 36px; background: linear-gradient(135deg, #7c3aed 0%, #059669 100%); color: white; font-weight: 800; font-size: 15px; border-radius: 14px; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.8px; box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5); transition: all 0.2s;">
+        🚀 Scan & Optimize Resume Now
+      </button>
+    </section>
+
+    <!-- Social Proof Section (Alex Chen & Sarah Jenkins Cards) -->
+    <section style="max-width: 1200px; margin: 0 auto 48px auto; padding: 36px 24px; border-top: 1px solid rgba(124, 58, 237, 0.2); background: transparent; border-left: none; border-right: none; border-bottom: none; box-shadow: none;">
+      <div style="text-align: center; margin-bottom: 36px;">
+        <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: white; margin-bottom: 8px; border: none; padding: 0;">
+          Real Candidate Transformations
+        </h2>
+        <p style="font-size: 14px; color: #c4b5fd; max-width: 580px; margin: 0 auto; opacity: 0.8;">
+          See how penalty-based feedback helped software engineers fix impact gaps and double their callback rates.
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px;">
+        <!-- Alex Chen Card -->
+        <div class="landing-card" style="background: rgba(38, 15, 84, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 20px; padding: 24px; backdrop-filter: blur(12px);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <h3 style="font-size: 16px; font-weight: 700; color: white; margin: 0;">Alex Chen</h3>
+              <p style="font-size: 12px; color: #c4b5fd; margin: 2px 0 0 0;">Senior Full-Stack Engineer</p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span style="font-size: 11px; font-weight: 600; color: #fca5a5; background: rgba(239, 68, 68, 0.2); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.3);">42% Before</span>
+              <span style="font-size: 11px; font-weight: 700; color: #6ee7b7; background: rgba(16, 185, 129, 0.2); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">89% After</span>
+            </div>
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 12px; padding: 14px; font-family: monospace; font-size: 12px; margin-bottom: 16px;">
+            <p style="color: #fca5a5; margin: 0 0 8px 0;">❌ "Assisted with backend APIs and helped write SQL queries."</p>
+            <p style="color: #6ee7b7; font-weight: 600; margin: 0;">✓ "Architected high-throughput FastAPI endpoints serving 10,000+ daily requests, improving SQL latency by 45%."</p>
+          </div>
+          <p style="font-size: 12px; color: #c4b5fd; font-style: italic; margin: 0; opacity: 0.9;">
+            "Stratum pointed out weak verbs and missing metrics that other scanners missed. I got 3 callbacks in my first week."
+          </p>
+        </div>
+
+        <!-- Sarah Jenkins Card -->
+        <div class="landing-card" style="background: rgba(38, 15, 84, 0.5); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 20px; padding: 24px; backdrop-filter: blur(12px);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <h3 style="font-size: 16px; font-weight: 700; color: white; margin: 0;">Sarah Jenkins</h3>
+              <p style="font-size: 12px; color: #c4b5fd; margin: 2px 0 0 0;">DevOps & Cloud Engineer</p>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span style="font-size: 11px; font-weight: 600; color: #fca5a5; background: rgba(239, 68, 68, 0.2); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.3);">38% Before</span>
+              <span style="font-size: 11px; font-weight: 700; color: #6ee7b7; background: rgba(16, 185, 129, 0.2); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">92% After</span>
+            </div>
+          </div>
+          <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(124, 58, 237, 0.2); border-radius: 12px; padding: 14px; font-family: monospace; font-size: 12px; margin-bottom: 16px;">
+            <p style="color: #fca5a5; margin: 0 0 8px 0;">❌ "Worked on Docker containers and AWS deployment."</p>
+            <p style="color: #6ee7b7; font-weight: 600; margin: 0;">✓ "Automated multi-region Docker deployment on AWS EKS using Terraform, cutting deployment downtime by 70%."</p>
+          </div>
+          <p style="font-size: 12px; color: #c4b5fd; font-style: italic; margin: 0; opacity: 0.9;">
+            "The penalty breakdown showed me that my resume failed due to lack of metrics. The automated DOCX output was pristine."
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Educational Section: ATS Compliance Guide -->
+    <section style="max-width: 1200px; margin: 0 auto 64px auto; padding: 36px 24px; border-top: 1px solid rgba(124, 58, 237, 0.2); background: transparent; border-left: none; border-right: none; border-bottom: none; box-shadow: none;">
+      <div style="text-align: center; margin-bottom: 36px;">
+        <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: white; margin-bottom: 8px; border: none; padding: 0;">
+          ATS Compliance Guidelines
+        </h2>
+        <p style="font-size: 14px; color: #c4b5fd; max-width: 580px; margin: 0 auto; opacity: 0.8;">
+          Essential formatting rules enforced by Stratum to guarantee 100% parser accuracy across Workday, Greenhouse, and Lever.
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+        <div class="landing-guide-card" style="background: rgba(38, 15, 84, 0.35); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 16px; padding: 20px;">
+          <div style="font-size: 24px; margin-bottom: 8px;">📌</div>
+          <h3 style="font-size: 14px; font-weight: 700; color: white; margin: 0 0 6px 0;">Standard Section Titles</h3>
+          <p style="font-size: 12px; color: #c4b5fd; margin: 0; line-height: 1.5; opacity: 0.85;">Use standard headers (Experience, Education, Skills, Projects). Avoid non-standard titles like "Where I've Been".</p>
+        </div>
+
+        <div class="landing-guide-card" style="background: rgba(38, 15, 84, 0.35); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 16px; padding: 20px;">
+          <div style="font-size: 24px; margin-bottom: 8px;">🔤</div>
+          <h3 style="font-size: 14px; font-weight: 700; color: white; margin: 0 0 6px 0;">Standard ATS Fonts</h3>
+          <p style="font-size: 12px; color: #c4b5fd; margin: 0; line-height: 1.5; opacity: 0.85;">Stick to web-safe typography (Times New Roman, Arial, Calibri, Inter). Non-standard fonts confuse parser engines.</p>
+        </div>
+
+        <div class="landing-guide-card" style="background: rgba(38, 15, 84, 0.35); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 16px; padding: 20px;">
+          <div style="font-size: 24px; margin-bottom: 8px;">📄</div>
+          <h3 style="font-size: 14px; font-weight: 700; color: white; margin: 0 0 6px 0;">Single-Column Layout</h3>
+          <p style="font-size: 12px; color: #c4b5fd; margin: 0; line-height: 1.5; opacity: 0.85;">Multi-column layouts cause text overlap during parsing. Always stick to clean single-column hierarchy.</p>
+        </div>
+
+        <div class="landing-guide-card" style="background: rgba(38, 15, 84, 0.35); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 16px; padding: 20px;">
+          <div style="font-size: 24px; margin-bottom: 8px;">🚫</div>
+          <h3 style="font-size: 14px; font-weight: 700; color: white; margin: 0 0 6px 0;">No Tables or Columns</h3>
+          <p style="font-size: 12px; color: #c4b5fd; margin: 0; line-height: 1.5; opacity: 0.85;">Table borders and grid cells mangle parser text streams. Stratum penalizes heavy table structures.</p>
+        </div>
+
+        <div class="landing-guide-card" style="background: rgba(38, 15, 84, 0.35); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 16px; padding: 20px;">
+          <div style="font-size: 24px; margin-bottom: 8px;">🖼️</div>
+          <h3 style="font-size: 14px; font-weight: 700; color: white; margin: 0 0 6px 0;">No Scanned Diagrams / Images</h3>
+          <p style="font-size: 12px; color: #c4b5fd; margin: 0; line-height: 1.5; opacity: 0.85;">ATS bots cannot read images, icons, or progress bars. Rely on clear text percentages and numbers.</p>
+        </div>
+
+        <div class="landing-guide-card" style="background: rgba(38, 15, 84, 0.35); border: 1px solid rgba(124, 58, 237, 0.25); border-radius: 16px; padding: 20px;">
+          <div style="font-size: 24px; margin-bottom: 8px;">🎯</div>
+          <h3 style="font-size: 14px; font-weight: 700; color: white; margin: 0 0 6px 0;">Quantified Business Impact</h3>
+          <p style="font-size: 12px; color: #c4b5fd; margin: 0; line-height: 1.5; opacity: 0.85;">Include numbers, percentages (30%), currency ($50k), or multipliers (2x) in at least 50% of your experience bullets.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer CTA -->
+    <footer style="border-top: 1px solid rgba(124, 58, 237, 0.2); padding: 36px 24px; text-align: center; background: rgba(16, 6, 36, 0.9);">
+      <p style="font-size: 13px; color: #c4b5fd; margin-bottom: 16px; opacity: 0.7;">Stratum AI Resume Automation Platform — Production Ready</p>
+      <button class="get-started-btn" onclick="window.showDashboardView(); return false;" style="padding: 12px 28px; background: #7c3aed; color: white; font-weight: 700; font-size: 13px; border-radius: 12px; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;">
+        Get Started Now →
+      </button>
+    </footer>
+  </div>
+
+  <!-- PAGE 2: ORIGINAL DASHBOARD VIEW -->
+  <div id="dashboard-view" style="display: none; width: 100%;">
+    <header>
+      <div class="logo-container" style="cursor: pointer;" onclick="showLandingPage()">
+        <div class="logo-icon">S</div>
+        <h1>Stratum Job Agent</h1>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <button onclick="showLandingPage()" class="secondary" style="padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid rgba(124, 58, 237, 0.4); display: flex; align-items: center; gap: 6px;" type="button">
+          🏠 Landing Page
+        </button>
+        <button id="theme-toggle" class="secondary" style="padding: 8px 12px; font-size: 13px; border-radius: 8px; display: flex; align-items: center; gap: 6px; box-shadow: none;" type="button">
+          <span id="theme-toggle-icon">☀️</span> <span id="theme-toggle-text">Light Mode</span>
+        </button>
+        <div class="status-badge">
+          <div class="status-dot"></div>
+          Server Online
+        </div>
+      </div>
+    </header>
 
   <!-- Step Progress Indicator -->
   <div class="steps-indicator" style="display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px 28px; margin: 24px 24px 8px 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.2);">
@@ -572,35 +949,34 @@
       <form id="workflow-form" class="stack">
         <div class="form-group">
           <label>Email</label>
-          <input type="email" id="email" value="test@example.com" placeholder="candidate@example.com" required>
+          <input type="email" id="email" value="" placeholder="candidate@example.com" required>
         </div>
         
         <div class="form-group">
           <label>Full Name</label>
-          <input type="text" id="fullName" value="Test User" placeholder="John Doe" required>
+          <input type="text" id="fullName" value="" placeholder="John Doe" required>
         </div>
 
         <div class="form-group">
           <label>Target Role</label>
-          <input type="text" id="targetRole" value="Backend Engineer" placeholder="e.g. Senior Backend Engineer" required>
+          <input type="text" id="targetRole" value="" placeholder="e.g. Senior Backend Engineer" required>
         </div>
 
         <div class="form-group">
           <label>Skills to Highlight (comma separated)</label>
-          <input type="text" id="skills" value="Python, FastAPI, Docker, SQLAlchemy, Redis" placeholder="e.g. Python, FastAPI, AWS">
+          <input type="text" id="skills" value="" placeholder="e.g. Python, FastAPI, AWS">
         </div>
 
         <div class="form-group">
           <label>Job Search Source</label>
           <select id="searchSource">
             <option value="tavily">Tavily Web Search</option>
-            <option value="linkedin_tavily">LinkedIn (via Tavily)</option>
           </select>
         </div>
 
         <div class="form-group">
           <label>Preferred Locations (comma separated)</label>
-          <input type="text" id="preferredLocations" value="Mumbai, Bangalore, Remote" placeholder="e.g. Remote, San Francisco, London">
+          <input type="text" id="preferredLocations" value="" list="location-options" placeholder="e.g. Remote, San Francisco, London">
         </div>
 
         <div class="form-group">
@@ -832,21 +1208,32 @@
 
     <section>
       <h2>Draft Review</h2>
-      <div class="summary-grid">
-        <div class="metric-card ats-metric" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
-          <strong>ATS Match</strong>
-          <div class="progress-ring-container" style="position: relative; width: 80px; height: 80px;">
-            <svg class="progress-ring" width="80" height="80">
-              <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.05)" stroke-width="6" fill="transparent" r="32" cx="40" cy="40"/>
-              <circle id="ats-circle" class="progress-ring__circle" stroke="url(#ats-gradient)" stroke-width="6" stroke-dasharray="201" stroke-dashoffset="201" stroke-linecap="round" fill="transparent" r="32" cx="40" cy="40" style="transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset 0.5s ease-out;"/>
+      <div class="summary-grid" style="max-width: 680px;">
+        <div class="metric-card ats-metric" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px;">
+          <strong style="font-size: 13px; letter-spacing: 1px; color: var(--text-muted);">Calibrated ATS Match Score</strong>
+          <div class="progress-ring-container" style="position: relative; width: 110px; height: 110px;">
+            <svg class="progress-ring" width="110" height="110">
+              <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.08)" stroke-width="8" fill="transparent" r="45" cx="55" cy="55"/>
+              <circle id="ats-circle" class="progress-ring__circle" stroke="url(#ats-gradient)" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="283" stroke-linecap="round" fill="transparent" r="45" cx="55" cy="55" style="transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset 0.5s ease-out;"/>
               <defs>
                 <linearGradient id="ats-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#6366f1" />
-                  <stop offset="100%" stop-color="#a855f7" />
+                  <stop offset="0%" stop-color="#7c3aed" />
+                  <stop offset="100%" stop-color="#10b981" />
                 </linearGradient>
               </defs>
             </svg>
-            <span id="ats" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 18px; font-weight: 700; color: #fff;">-</span>
+            <span id="ats" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; font-weight: 800; color: #fff;">-</span>
+          </div>
+
+          <!-- Dynamic Actionable Feedback Panel (Rendered when ATS Score < 75%) -->
+          <div id="atsFeedbackPanel" style="display: none; width: 100%; margin-top: 14px; text-align: left; background: rgba(38, 15, 84, 0.6); border: 1px solid rgba(124, 58, 237, 0.35); border-radius: 16px; padding: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(124, 58, 237, 0.2);">
+              <span style="font-size: 12px; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">
+                ⚠️ Actionable Feedback (Below 75% Threshold)
+              </span>
+            </div>
+            <div id="penaltyTags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;"></div>
+            <div id="feedbackList" style="display: flex; flex-direction: column; gap: 8px;"></div>
           </div>
         </div>
       </div>
@@ -956,8 +1343,39 @@
       </div>
     </div>
   </main>
+</div> <!-- END OF PAGE 2: DASHBOARD VIEW -->
 
   <script>
+    // Global Page View Router Functions
+    window.showDashboardView = function() {
+      const landing = document.getElementById("landing-page-view");
+      const dashboard = document.getElementById("dashboard-view");
+      if (landing) landing.style.display = "none";
+      if (dashboard) dashboard.style.display = "block";
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      location.hash = "#dashboard";
+    };
+
+    window.showLandingPage = function() {
+      const landing = document.getElementById("landing-page-view");
+      const dashboard = document.getElementById("dashboard-view");
+      if (landing) landing.style.display = "block";
+      if (dashboard) dashboard.style.display = "none";
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (location.hash === "#dashboard") {
+        history.pushState("", document.title, window.location.pathname);
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll(".get-started-btn").forEach(btn => {
+        btn.addEventListener("click", window.showDashboardView);
+      });
+      if (window.location.hash === "#dashboard") {
+        window.showDashboardView();
+      }
+    });
+
     const api = "/api/v1";
     let latest = null;
     let gate3Approved = false;
@@ -1095,19 +1513,50 @@
     // Set initial step
     updateStep('intake');
 
-    // Handle circular progress ring for ATS score
-    function setAtsScore(score) {
+    // Handle circular progress ring for ATS score and Actionable Feedback Panel
+    function setAtsScore(score, feedbackText = "", penalties = null) {
       const circle = document.getElementById("ats-circle");
       const atsSpan = document.getElementById("ats");
-      if (isNaN(score) || score === null) {
-        circle.style.strokeDashoffset = 201;
+      const feedbackPanel = document.getElementById("atsFeedbackPanel");
+      
+      if (isNaN(score) || score === null || score === undefined) {
+        circle.style.strokeDashoffset = 283;
         atsSpan.textContent = "-";
+        if (feedbackPanel) feedbackPanel.style.display = "none";
         return;
       }
       
       atsSpan.textContent = score + "%";
-      const offset = 201 - (score / 100) * 201;
+      const offset = 283 - (score / 100) * 283;
       circle.style.strokeDashoffset = offset;
+
+      // Render Actionable Feedback Panel if score < 75%
+      if (score < 75 && feedbackPanel) {
+        feedbackPanel.style.display = "block";
+        const feedbackList = document.getElementById("feedbackList");
+        const penaltyTags = document.getElementById("penaltyTags");
+        
+        if (feedbackList) {
+          const lines = feedbackText ? feedbackText.split("\n").filter(l => l.trim()) : [];
+          feedbackList.innerHTML = lines.map(line => `
+            <div style="display: flex; align-items: flex-start; gap: 8px; background: rgba(15, 23, 42, 0.4); padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(124, 58, 237, 0.2);">
+              <span style="color: #f59e0b; font-weight: bold; margin-top: 1px;">💡</span>
+              <span style="font-size: 12px; color: var(--text-primary); line-height: 1.5;">${line.replace(/^[\s•\-*]+/, '')}</span>
+            </div>
+          `).join('');
+        }
+
+        if (penaltyTags && penalties) {
+          let tagsHtml = '';
+          if (penalties.impact_verbs > 0) tagsHtml += `<span style="font-size: 11px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #fcd34d; padding: 2px 8px; border-radius: 6px;">Impact Verbs: -${penalties.impact_verbs} pts</span>`;
+          if (penalties.metrics > 0) tagsHtml += `<span style="font-size: 11px; background: rgba(124, 58, 237, 0.15); border: 1px solid rgba(124, 58, 237, 0.3); color: #c4b5fd; padding: 2px 8px; border-radius: 6px;">Metrics Gap: -${penalties.metrics} pts</span>`;
+          if (penalties.brevity > 0) tagsHtml += `<span style="font-size: 11px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #93c5fd; padding: 2px 8px; border-radius: 6px;">Brevity: -${penalties.brevity} pts</span>`;
+          if (penalties.formatting > 0) tagsHtml += `<span style="font-size: 11px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 2px 8px; border-radius: 6px;">Formatting: -${penalties.formatting} pts</span>`;
+          penaltyTags.innerHTML = tagsHtml;
+        }
+      } else if (feedbackPanel) {
+        feedbackPanel.style.display = "none";
+      }
     }
 
     // Show name of selected file
@@ -1367,15 +1816,17 @@
         return;
       }
 
-      jobTargets.forEach(job => {
+      jobTargets.forEach((job, index) => {
         const card = document.createElement("div");
-        card.className = "discovered-job-card";
+        card.className = "discovered-job-card" + (index >= 6 ? " extra-job-card" : "");
+        if (index >= 6) {
+          card.style.display = "none";
+        }
 
         const title = job.title || "Untitled Role";
         const company = job.company || "Unknown Company";
         const desc = job.description ? (job.description.length > 180 ? job.description.substring(0, 177) + "..." : job.description) : "No description available.";
         
-        // Render badges for skills
         let badgesHtml = "";
         if (job.extracted_skills && job.extracted_skills.length > 0) {
           badgesHtml = job.extracted_skills.map(s => `
@@ -1387,7 +1838,6 @@
           badgesHtml = "<span style='font-size: 10px; color: var(--text-muted);'>No matching skills</span>";
         }
 
-        // Render Visit Site link
         const visitBtn = job.job_url 
           ? `<a href="${job.job_url}" target="_blank" class="visit-website-link" style="display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 12px; border: 1px solid var(--accent); border-radius: 8px; color: var(--accent); font-size: 12px; font-weight: 600; text-decoration: none; background: rgba(16, 185, 129, 0.03); transition: all 0.2s;">View Site</a>`
           : "";
@@ -1409,7 +1859,38 @@
           updateStep('optimization');
           const status = document.getElementById("status");
           status.className = "status-message working";
-          status.innerHTML = `<div class="spinner"></div> Optimizing resume and drafting email outreach for ${title} at ${company}...`;
+          
+          // Progress bar during optimization
+          let optPercent = 30;
+          const updateOptProgress = (pct, msg) => {
+            let col = "#ef4444";
+            if (pct >= 70) col = "#10b981";
+            else if (pct >= 40) col = "#f59e0b";
+            status.innerHTML = `
+              <div style="width: 100%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text-primary);">
+                  <span style="display: flex; align-items: center; gap: 8px;"><div class="spinner"></div> ${msg}</span>
+                  <span style="font-weight: 800; color: ${col};">${pct}%</span>
+                </div>
+                <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; position: relative;">
+                  <div style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%); transition: width 0.4s ease, background 0.4s ease; box-shadow: 0 0 10px ${col};"></div>
+                </div>
+              </div>
+            `;
+          };
+
+          updateOptProgress(30, `Optimizing resume for ${title} at ${company}...`);
+          const optTimer = setInterval(() => {
+            if (optPercent < 90) {
+              optPercent += 20;
+              const stepMsgs = {
+                50: "Extracting job keywords & requirements...",
+                70: "Enhancing experience bullet points & metrics...",
+                90: "Compiling ATS-compliant DOCX resume & cover letter..."
+              };
+              updateOptProgress(optPercent, stepMsgs[optPercent] || "Processing optimization...");
+            }
+          }, 1200);
 
           try {
             const recipientAddr = "recruiter@" + company.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
@@ -1448,10 +1929,10 @@
                 job_description: job.description || job.title
               });
               const atsValue = atsRes.ats_score !== undefined ? atsRes.ats_score : atsRes.score;
-              setAtsScore(atsValue);
+              setAtsScore(atsValue, atsRes.actionable_feedback || "", atsRes.penalties || null);
             } catch (atsErr) {
               const fallbackAts = Math.round((latest.ats_score || 0) * 100);
-              setAtsScore(fallbackAts);
+              setAtsScore(fallbackAts, latest.actionable_feedback || "", latest.penalties || null);
             }
 
             // 2. Fetch personalized email draft via POST /outreach/generate-email
@@ -1491,6 +1972,32 @@
 
         grid.appendChild(card);
       });
+
+      // Show More Jobs button for 10+ discovered jobs
+      const jobsSec = document.getElementById("discoveredJobsSection");
+      const oldShowMore = document.getElementById("btnShowMoreJobs");
+      if (oldShowMore) oldShowMore.remove();
+
+      if (jobTargets.length > 6) {
+        const showMoreBtn = document.createElement("button");
+        showMoreBtn.id = "btnShowMoreJobs";
+        showMoreBtn.type = "button";
+        showMoreBtn.style = "width: 100%; margin-top: 20px; padding: 14px; background: rgba(124, 58, 237, 0.15); border: 1px solid rgba(124, 58, 237, 0.4); color: #c4b5fd; font-weight: 700; font-size: 14px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;";
+        showMoreBtn.innerHTML = `Show More Jobs ⯆ (${jobTargets.length - 6} more roles)`;
+        
+        let expanded = false;
+        showMoreBtn.addEventListener("click", () => {
+          expanded = !expanded;
+          document.querySelectorAll(".extra-job-card").forEach(c => {
+            c.style.display = expanded ? "flex" : "none";
+          });
+          showMoreBtn.innerHTML = expanded 
+            ? `Show Fewer Jobs ⯅` 
+            : `Show More Jobs ⯆ (${jobTargets.length - 6} more roles)`;
+        });
+        
+        grid.parentNode.insertBefore(showMoreBtn, grid.nextSibling);
+      }
 
       document.getElementById("discoveredJobsSection").hidden = false;
     }
@@ -1557,7 +2064,20 @@
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label>Degree</label>
-            <input type="text" class="edu-deg" value="${deg}" placeholder="e.g. Bachelor of Science" required>
+            <select class="edu-deg" required style="width: 100%; height: 44px; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--card-border); border-radius: 10px; padding: 0 12px; font-size: 14px;">
+              <option value="" ${!deg ? "selected" : ""}>Select Degree...</option>
+              <option value="B.Tech / B.E." ${deg && (deg.includes("B.Tech") || deg.includes("B.E")) ? "selected" : ""}>B.Tech / B.E. (Bachelor of Technology / Engineering)</option>
+              <option value="B.S. / B.Sc" ${deg && (deg.includes("B.S") || deg.includes("B.Sc") || deg.includes("Bachelor of Science")) ? "selected" : ""}>B.S. / B.Sc (Bachelor of Science)</option>
+              <option value="B.C.A. / B.C.S." ${deg && deg.includes("B.C.A") ? "selected" : ""}>B.C.A. / B.C.S. (Computer Applications)</option>
+              <option value="M.Tech / M.E." ${deg && (deg.includes("M.Tech") || deg.includes("M.E")) ? "selected" : ""}>M.Tech / M.E. (Master of Technology / Engineering)</option>
+              <option value="M.S. / M.Sc" ${deg && (deg.includes("M.S") || deg.includes("M.Sc") || deg.includes("Master of Science")) ? "selected" : ""}>M.S. / M.Sc (Master of Science)</option>
+              <option value="M.C.A." ${deg && deg.includes("M.C.A") ? "selected" : ""}>M.C.A. (Master of Computer Applications)</option>
+              <option value="M.B.A. / B.B.A." ${deg && (deg.includes("M.B.A") || deg.includes("B.B.A")) ? "selected" : ""}>M.B.A. / B.B.A. (Business Administration)</option>
+              <option value="Ph.D. / Doctorate" ${deg && (deg.includes("Ph.D") || deg.includes("Doctor")) ? "selected" : ""}>Ph.D. / Doctorate</option>
+              <option value="Diploma / Associate" ${deg && deg.includes("Diploma") ? "selected" : ""}>Diploma / Associate Degree</option>
+              <option value="High School Diploma" ${deg && deg.includes("High School") ? "selected" : ""}>High School Diploma</option>
+              <option value="${deg || 'Other'}" ${deg && !['B.Tech / B.E.', 'B.S. / B.Sc', 'B.C.A. / B.C.S.', 'M.Tech / M.E.', 'M.S. / M.Sc', 'M.C.A.', 'M.B.A. / B.B.A.', 'Ph.D. / Doctorate', 'Diploma / Associate', 'High School Diploma'].some(d => deg.includes(d.split(' ')[0])) ? "selected" : ""}>${deg || 'Other'}</option>
+            </select>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label>Specialization</label>
@@ -1860,18 +2380,80 @@
 
     document.getElementById("workflow-form").addEventListener("submit", async (event) => {
       event.preventDefault();
-      updateStep('discovery');
+      
+      // Module 6 Pre-Submit Validation Guardrail (Anti-Hallucination Guard)
+      document.querySelectorAll(".input-invalid").forEach(el => el.classList.remove("input-invalid"));
+
+      const emailVal = document.getElementById("email").value.trim();
+      const nameVal = document.getElementById("fullName").value.trim();
+      const targetRoleVal = document.getElementById("targetRole").value.trim();
       const status = document.getElementById("status");
       const submitBtn = document.getElementById("submit-btn");
 
-      status.className = "status-message working";
-      status.innerHTML = '<div class="spinner"></div> Submitting profile and initiating job search...';
+      let isInvalid = false;
+      if (!emailVal) { document.getElementById("email").classList.add("input-invalid"); isInvalid = true; }
+      if (!nameVal) { document.getElementById("fullName").classList.add("input-invalid"); isInvalid = true; }
+      if (!targetRoleVal) { document.getElementById("targetRole").classList.add("input-invalid"); isInvalid = true; }
+
+      const fileInput = document.getElementById("resumeFile");
+      if (currentMode === "upload" && (!fileInput.files || fileInput.files.length === 0)) {
+        const dropzone = document.querySelector(".file-upload-container");
+        if (dropzone) dropzone.classList.add("input-invalid");
+        isInvalid = true;
+      }
+
+      if (isInvalid) {
+        status.className = "status-message error validation-error-box";
+        status.textContent = "Please select an intake option: Upload an existing resume OR fill out the 'Build from Scratch' form.";
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      updateStep('discovery');
       submitBtn.disabled = true;
 
       // Hide previous results
       document.getElementById("discoveredJobsSection").hidden = true;
       document.getElementById("review").hidden = true;
       setAtsScore(null);
+
+      // Start color-coded animated progress bar
+      let currentProgress = 15;
+      const progressSteps = [
+        { pct: 35, text: "Submitting candidate preferences..." },
+        { pct: 60, text: "Searching live tech jobs via Tavily..." },
+        { pct: 85, text: "Analyzing job descriptions & matching skills..." },
+        { pct: 98, text: "Finalizing job cards..." }
+      ];
+      let stepIdx = 0;
+      
+      const updateProgressUI = (pct, stepMsg) => {
+        let barColor = "#ef4444";
+        if (pct >= 70) barColor = "#10b981";
+        else if (pct >= 35) barColor = "#f59e0b";
+        
+        status.className = "status-message working";
+        status.innerHTML = `
+          <div style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text-primary);">
+              <span style="display: flex; align-items: center; gap: 8px;"><div class="spinner"></div> ${stepMsg}</span>
+              <span style="font-weight: 800; color: ${barColor};">${pct}%</span>
+            </div>
+            <div style="width: 100%; height: 10px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden; position: relative;">
+              <div style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%); transition: width 0.4s ease, background 0.4s ease; box-shadow: 0 0 10px ${barColor};"></div>
+            </div>
+          </div>
+        `;
+      };
+      
+      updateProgressUI(currentProgress, "Submitting profile & initiating job search...");
+      const progressTimer = setInterval(() => {
+        if (stepIdx < progressSteps.length) {
+          const s = progressSteps[stepIdx];
+          updateProgressUI(s.pct, s.text);
+          stepIdx++;
+        }
+      }, 1200);
 
       try {
         const email = document.getElementById("email").value;
@@ -2090,9 +2672,6 @@
         } else if (response.status === "skipped_no_email_config") {
           status.className = "status-message error";
           status.textContent = `Email skipped: Please configure SMTP_HOST or Google OAuth credentials in your .env file.`;
-        } else if (response.status === "failed") {
-          status.className = "status-message error";
-          status.textContent = `Email dispatch failed: ${response.result?.error || response.error || 'Check server logs.'}`;
         } else {
           status.className = "status-message success";
           status.textContent = `Email dispatch queued (Task ID: ${response.task_id}).`;
@@ -2103,15 +2682,60 @@
       }
     });
 
-    document.getElementById("btnAutoOptimize").addEventListener("click", async () => {
-      if (!latest) return;
-      await handleHitlDecisionSubmit(latest.session_id, "optimize");
-    });
+    const btnAutoOpt = document.getElementById("btnAutoOptimize");
+    if (btnAutoOpt) {
+      btnAutoOpt.addEventListener("click", async () => {
+        if (!latest) return;
+        await handleHitlDecisionSubmit(latest.session_id, "optimize");
+      });
+    }
 
-    document.getElementById("btnProceedAsIs").addEventListener("click", async () => {
-      if (!latest) return;
-      await handleHitlDecisionSubmit(latest.session_id, "keep_original");
-    });
+    const btnProceed = document.getElementById("btnProceedAsIs");
+    if (btnProceed) {
+      btnProceed.addEventListener("click", async () => {
+        if (!latest) return;
+        await handleHitlDecisionSubmit(latest.session_id, "keep_original");
+      });
+    }
+
+    // Auto-expand Outreach Email Draft textarea
+    function autoExpandTextarea(el) {
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = (el.scrollHeight + 4) + "px";
+    }
+
+    const emailBodyEl = document.getElementById("emailBody");
+    if (emailBodyEl) {
+      emailBodyEl.addEventListener("input", () => autoExpandTextarea(emailBodyEl));
+    }
   </script>
+
+  <!-- Predefined Selection Datalists for Degree and Location -->
+  <datalist id="degree-options">
+    <option value="Bachelor of Technology (B.Tech)"></option>
+    <option value="Bachelor of Engineering (B.E.)"></option>
+    <option value="Bachelor of Science (B.S.)"></option>
+    <option value="Bachelor of Computer Applications (BCA)"></option>
+    <option value="Master of Science (M.S.)"></option>
+    <option value="Master of Technology (M.Tech)"></option>
+    <option value="Master of Computer Applications (MCA)"></option>
+    <option value="Master of Business Administration (MBA)"></option>
+    <option value="Ph.D. in Computer Science"></option>
+    <option value="Diploma in Computer Engineering"></option>
+  </datalist>
+
+  <datalist id="location-options">
+    <option value="Mumbai, Maharashtra, India"></option>
+    <option value="Bangalore, Karnataka, India"></option>
+    <option value="Delhi NCR, India"></option>
+    <option value="Pune, Maharashtra, India"></option>
+    <option value="Hyderabad, Telangana, India"></option>
+    <option value="Chennai, Tamil Nadu, India"></option>
+    <option value="San Francisco, CA, USA"></option>
+    <option value="New York, NY, USA"></option>
+    <option value="London, United Kingdom"></option>
+    <option value="Remote"></option>
+  </datalist>
 </body>
 </html>

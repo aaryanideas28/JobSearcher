@@ -211,32 +211,23 @@ class JobDiscoveryAgent:
     async def discover(
         self,
         query: str,
-        max_results: int = 6,
+        max_results: int = 12,
         source: str = "tavily",
         preferred_locations: list[str] | None = None,
         work_mode: str | None = None,
     ) -> list[JobPosting]:
         """Discover jobs using the configured provider and enrich details asynchronously."""
-        max_results = min(max_results, 6)
-        if source == "linkedin_tavily":
-            postings = await self.search_linkedin_tavily(
-                query=query,
-                max_results=max_results,
-                preferred_locations=preferred_locations,
-                work_mode=work_mode,
-            )
-        else:
-            postings = await self.search_tavily(
-                query=query,
-                max_results=max_results,
-                preferred_locations=preferred_locations,
-                work_mode=work_mode,
-            )
+        max_results = min(max_results, 12)
+        postings = await self.search_tavily(
+            query=query,
+            max_results=max_results,
+            preferred_locations=preferred_locations,
+            work_mode=work_mode,
+        )
 
         import asyncio
 
         async def enrich_and_sanitize(p: JobPosting):
-            # Bypass slow raw job page scraping to avoid HTTP hangs and anti-bot blocks
             card_dict = {
                 "title": p.title,
                 "company": p.company,
@@ -261,24 +252,80 @@ class JobDiscoveryAgent:
                 company="TechCorp Solutions",
                 location=loc,
                 url="https://example.com/jobs/python-engineer",
-                description=f"We are seeking a talented Senior Python Engineer to design and build scalable backend applications. Core requirements: Python, FastAPI, Docker, and PostgreSQL. Location preference: {loc}. Work mode: {mode}.",
-                metadata={"source": "fallback", "reason": "timeout"}
+                description=f"Seeking a Senior Python Engineer to design and build scalable backend applications. Core requirements: Python, FastAPI, Docker, and PostgreSQL. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
             ),
             JobPosting(
                 title="Backend Developer (FastAPI/Go)",
                 company="Innovate Labs",
                 location=loc,
                 url="https://example.com/jobs/backend-dev",
-                description=f"Join our dynamic team building high-performance APIs. Experience with Python, FastAPI, Redis, and relational databases is required. Distributed systems knowledge is a plus. Location preference: {loc}. Work mode: {mode}.",
-                metadata={"source": "fallback", "reason": "timeout"}
+                description=f"Join our dynamic team building high-performance APIs. Experience with Python, FastAPI, Redis, and relational databases is required. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
             ),
             JobPosting(
                 title="Full Stack Architect",
                 company="Stellar Systems",
                 location=loc,
                 url="https://example.com/jobs/fullstack-architect",
-                description=f"Looking for a Full Stack Architect experienced in Python, React, and AWS cloud environments. Lead engineering design and mentor junior staff. Location preference: {loc}. Work mode: {mode}.",
-                metadata={"source": "fallback", "reason": "timeout"}
+                description=f"Looking for a Full Stack Architect experienced in Python, React, and AWS cloud environments. Lead engineering design and mentor team. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
+            ),
+            JobPosting(
+                title="Lead Microservices Specialist",
+                company="Nexus Systems",
+                location=loc,
+                url="https://example.com/jobs/microservices-lead",
+                description=f"Architect resilient distributed microservices using Python, gRPC, and Kafka. Optimize system throughput and latency. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
+            ),
+            JobPosting(
+                title="DevOps & Cloud Engineer",
+                company="CloudScale Networks",
+                location=loc,
+                url="https://example.com/jobs/devops-engineer",
+                description=f"Automate multi-region cloud infrastructure on AWS/Kubernetes using Terraform, Helm, and CI/CD pipelines. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
+            ),
+            JobPosting(
+                title="Senior Data Platform Engineer",
+                company="DataFlow Insights",
+                location=loc,
+                url="https://example.com/jobs/data-engineer",
+                description=f"Build real-time ETL data pipelines and data warehouse integrations with Python, Spark, and Snowflake. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
+            ),
+            JobPosting(
+                title="AI Platform & MLOps Specialist",
+                company="Apex AI Systems",
+                location=loc,
+                url="https://example.com/jobs/mlops-specialist",
+                description=f"Deploy and monitor LLM pipelines, vector databases, and LangChain agents for production enterprise applications. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
+            ),
+            JobPosting(
+                title="Site Reliability Engineer (SRE)",
+                company="Reliability Ops",
+                location=loc,
+                url="https://example.com/jobs/sre-engineer",
+                description=f"Ensure 99.99% uptime for distributed backend services using Prometheus, Grafana, and automated incident recovery. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
+            ),
+            JobPosting(
+                title="Principal Software Systems Architect",
+                company="Enterprise Core",
+                location=loc,
+                url="https://example.com/jobs/principal-architect",
+                description=f"Drive engineering standards, technical roadmap, and cloud migration strategies across multi-team engineering departments. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
+            ),
+            JobPosting(
+                title="Senior Software Engineer - Security",
+                company="SecureNet Global",
+                location=loc,
+                url="https://example.com/jobs/security-engineer",
+                description=f"Implement Zero-Trust architecture, OAuth2/OIDC auth flows, and penetration testing guardrails for FastAPI services. Location: {loc}. Work mode: {mode}.",
+                metadata={"source": "fallback"}
             )
         ]
 

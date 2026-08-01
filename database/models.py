@@ -21,7 +21,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    full_name: Mapped[str] = mapped_column(String(255), nullable=False, default="Candidate")
+    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     resume_versions: Mapped[list[ResumeVersion]] = relationship(
@@ -68,7 +68,7 @@ class JobTarget(Base):
     job_description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="selected")
     preferred_locations: Mapped[list[str]] = mapped_column(json_column_type(), default=list, nullable=False)
-    work_mode: Mapped[str | None] = mapped_column(String(100), nullable=True, default="Any")
+    work_mode: Mapped[str | None] = mapped_column(String(100), nullable=True)
     metadata_json: Mapped[dict[str, Any]] = mapped_column(json_column_type(), default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -86,7 +86,7 @@ class CandidatePreference(Base):
     experience_level: Mapped[str | None] = mapped_column(String(100), nullable=True)
     skills_to_highlight: Mapped[list[str]] = mapped_column(json_column_type(), default=list, nullable=False)
     preferred_locations: Mapped[list[str]] = mapped_column(json_column_type(), default=list, nullable=False)
-    work_mode: Mapped[str | None] = mapped_column(String(100), nullable=True, default="Any")
+    work_mode: Mapped[str | None] = mapped_column(String(100), nullable=True)
     work_authorization: Mapped[str | None] = mapped_column(String(255), nullable=True)
     template_id: Mapped[str] = mapped_column(String(100), nullable=False, default="minimal_ats")
     metadata_json: Mapped[dict[str, Any]] = mapped_column(json_column_type(), default=dict, nullable=False)

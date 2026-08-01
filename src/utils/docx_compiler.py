@@ -58,8 +58,19 @@ TEMPLATE_STYLES: dict[str, dict[str, Any]] = {
 }
 
 
+def clean_resume_syntax(text: str) -> str:
+    """Clean markdown bolding (**) and em-dashes (—) from resume text. Replace with standard hyphens (-)."""
+    if not text:
+        return ""
+    text = text.replace("—", " - ").replace("–", " - ").replace("&mdash;", " - ").replace("&ndash;", " - ")
+    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+    text = re.sub(r"\s+-\s+", " - ", text)
+    return text.strip()
+
+
 def add_markdown_paragraph_runs(p: docx.Paragraph, text: str, font_name: str, font_size_pt: float, base_color = None):
     import re
+    text = clean_resume_syntax(text)
     parts = re.split(r'(\*\*[^*]+\*\*)', text)
     for part in parts:
         if part.startswith("**") and part.endswith("**"):

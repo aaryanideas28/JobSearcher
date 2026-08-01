@@ -9,7 +9,14 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Set
 
 from src.clients.embeddings import get_embedding
+from src.config.constants import (
+    FORMATTING_ARTIFACT_PATTERNS,
+    METRIC_PATTERNS_REGEX,
+    PENALTY_WEIGHTS,
+    WEAK_VERBS_REGEX,
+)
 from src.workflow.state import AgentState
+
 
 STOP_WORDS: Set[str] = {
     "a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
@@ -77,7 +84,7 @@ COMMON_TECHNICAL_SKILLS: Set[str] = {
 
 
 class ATSEngine:
-    """Analyze resume and job description using case-insensitive Weighted Skill Overlap algorithm."""
+    """Analyze resume and job description using case-insensitive Weighted Skill Overlap and Penalty Calibration."""
 
     def __init__(self, llm_client: Any = None) -> None:
         self.llm_client = llm_client
@@ -89,7 +96,6 @@ class ATSEngine:
         
         for skill in COMMON_TECHNICAL_SKILLS:
             escaped = re.escape(skill)
-            # Use custom boundaries for skills with special chars (+, #, .) to avoid boundary mismatch
             if skill.endswith("++") or skill.endswith("#") or skill.startswith("."):
                 pattern = r"(?:^|(?<=\s|/|,|;))" + escaped + r"(?:$|(?=\s|/|,|;|\.))"
             else:
@@ -99,8 +105,78 @@ class ATSEngine:
                 matched.add(skill)
         return matched
 
+    def _analyze_impact_verbs(self, text: str) -> tuple[int, list[str]]:
+        """Scan text using Regex for weak/passive action verbs and compute penalty."""
+        matches = WEAK_VERBS_REGEX.findall(text)
+        if not matches:
+            return 0, []
+        detected = sorted(list({m.lower() for m in matches}))
+        penalty_per_occ = PENALTY_WEIGHTS.get("weak_verb_per_occurrence", 3)
+        max_penalty = PENALTY_WEIGHTS.get("max_weak_verb_penalty", 15)
+        penalty = min(max_penalty, len(matches) * penalty_per_occ)
+        return penalty, detected
+
+    def _analyze_formatting_artifacts(self, text: str) -> tuple[int, list[str]]:
+        """Detect non-ATS formatting elements like table pipes, HTML tags, and tabs."""
+        issues = []
+        penalty = 0
+        if FORMATTING_ARTIFACT_PATTERNS["table_pipes"].search(text) or FORMATTING_ARTIFACT_PATTERNS["html_tables"].search(text):
+            issues.append("tables/columns detected")
+            penalty += PENALTY_WEIGHTS.get("table_penalty", 15)
+        if FORMATTING_ARTIFACT_PATTERNS["html_images"].search(text):
+            issues.append("images/diagrams detected")
+            penalty += PENALTY_WEIGHTS.get("image_column_penalty", 15)
+        if FORMATTING_ARTIFACT_PATTERNS["multi_column_tabs"].search(text):
+            issues.append("multi-column tab spacing")
+            penalty += 5
+
+        max_penalty = PENALTY_WEIGHTS.get("max_formatting_penalty", 25)
+        return min(max_penalty, penalty), issues
+
+    def _analyze_brevity(self, text: str) -> tuple[int, list[str]]:
+        """Check bullet counts and word count for brevity violations."""
+        issues = []
+        bullets = self._extract_bullets(text)
+        words = text.split()
+        
+        penalty = 0
+        if len(bullets) < 3 or len(words) < 150:
+            issues.append("insufficient total bullet/word count (< 150 words or < 3 bullets)")
+            penalty += PENALTY_WEIGHTS.get("low_bullet_count_penalty", 15)
+
+        invalid_len_count = 0
+        for b in bullets:
+            b_words = b.split()
+            if len(b_words) < 5 or len(b_words) > 45:
+                invalid_len_count += 1
+                
+        if invalid_len_count > 0:
+            issues.append(f"{invalid_len_count} bullet(s) with non-standard length (< 5 or > 45 words)")
+            penalty += min(10, invalid_len_count * PENALTY_WEIGHTS.get("invalid_bullet_length_penalty", 2))
+
+        max_penalty = PENALTY_WEIGHTS.get("max_brevity_penalty", 15)
+        return min(max_penalty, penalty), issues
+
+    def _analyze_metric_density(self, text: str) -> tuple[int, list[str]]:
+        """Check percentage of bullet points that contain quantified results/metrics using Regex."""
+        bullets = self._extract_bullets(text)
+        if not bullets:
+            return 0, []
+
+        metric_bullets_count = sum(1 for b in bullets if METRIC_PATTERNS_REGEX.search(b))
+        ratio = metric_bullets_count / len(bullets)
+
+        issues = []
+        penalty = 0
+        if ratio < 0.50:
+            percentage_with_metrics = int(round(ratio * 100))
+            issues.append(f"only {percentage_with_metrics}% of bullets contain quantified metrics (target: 50%+)")
+            penalty = PENALTY_WEIGHTS.get("low_metric_ratio_penalty", 15)
+
+        return penalty, issues
+
     def calculate_ats_score(self, resume_text: str, job_description: str) -> Dict[str, Any]:
-        """Compute hybrid calibrated ATS score (0-100) using Weighted Skill Overlap and Density."""
+        """Compute strict, penalty-based calibrated ATS score (0-100) benchmarked against industry standards."""
         if not resume_text.strip() or not job_description.strip():
             return {
                 "ats_score": 0,
@@ -109,23 +185,23 @@ class ATSEngine:
                 "missing_skills": [],
                 "missing_keywords": [],
                 "semantic_gaps": [],
+                "actionable_feedback": "Please upload or enter a resume and target job description to compute an ATS score.",
+                "penalties": {},
             }
 
-        # 1. Skill Extraction
+        # 1. Skill & Token Extraction
         jd_skills = self._extract_technical_skills(job_description)
         resume_skills = self._extract_technical_skills(resume_text)
 
         matched_skills = jd_skills & resume_skills
         missing_skills = jd_skills - resume_skills
 
-        # 2. Skill Coverage Score (70% component)
+        # 2. Base Matching Score (0 - 100 scale)
         if jd_skills:
             coverage_score = len(matched_skills) / len(jd_skills)
         else:
-            coverage_score = 1.0
+            coverage_score = 0.8
 
-        # 3. Role & Experience Keyword Density Score (30% component)
-        # Extract general tokens from JD (excluding skills and stop words)
         jd_tokens = self._extract_keywords(job_description)
         jd_role_tokens = jd_tokens - {s.lower() for s in jd_skills}
 
@@ -134,20 +210,40 @@ class ATSEngine:
             matched_role_tokens = jd_role_tokens & resume_tokens
             density_score = len(matched_role_tokens) / len(jd_role_tokens)
         else:
-            density_score = 1.0
+            density_score = 0.8
 
-        # 4. Calibrate to realistic 75% - 95% range for matching resumes
-        if not jd_skills:
-            ats_score = int(85.0 + (density_score * 10.0))
-        elif len(matched_skills) == 0:
-            ats_score = int(density_score * 30.0)
-        else:
-            # Linear mapping to realistic ranges
-            ats_score = int(70.0 + (coverage_score * 20.0) + (density_score * 5.0))
+        base_score = (coverage_score * 65.0) + (density_score * 35.0)
 
-        ats_score = max(0, min(100, ats_score))
+        # 3. Penalty Analysis
+        impact_penalty, weak_verbs = self._analyze_impact_verbs(resume_text)
+        formatting_penalty, formatting_issues = self._analyze_formatting_artifacts(resume_text)
+        brevity_penalty, brevity_issues = self._analyze_brevity(resume_text)
+        metric_penalty, metric_issues = self._analyze_metric_density(resume_text)
 
-        # Build list of semantic gap objects for compatibility
+        total_penalties = impact_penalty + formatting_penalty + brevity_penalty + metric_penalty
+
+        # Calibrated Score calculation: benchmarked closer to Resume Worded range (~40%-65%)
+        calibrated_score = int(round(base_score - total_penalties))
+        calibrated_score = max(0, min(100, calibrated_score))
+
+        # 4. Generate 3-4 line Actionable Feedback
+        feedback_lines = []
+        if missing_skills:
+            top_missing = [s.title() for s in sorted(list(missing_skills))[:4]]
+            feedback_lines.append(f"• Technical Skills Gap: Missing required keywords ({', '.join(top_missing)}). Add these naturally to your experience.")
+        if weak_verbs:
+            top_weak = [f"'{v}'" for v in weak_verbs[:3]]
+            feedback_lines.append(f"• Action Verb Impact: Detected passive phrasing ({', '.join(top_weak)}). Replace with strong action verbs like 'Engineered' or 'Architected'.")
+        if metric_issues:
+            feedback_lines.append("• Quantified Impact Gap: Over 50% of your bullets lack measurable results. Add numbers, percentages, or multipliers (e.g. 'Improved efficiency by 30%').")
+        if formatting_issues:
+            feedback_lines.append(f"• Formatting Warnings: Detected non-standard elements ({', '.join(formatting_issues)}). Use single-column text without tables or images.")
+
+        if not feedback_lines:
+            feedback_lines.append("• Strong Keyword Match: Resume aligns well with job description. Maintain strong quantified bullet points and clean typography.")
+
+        actionable_feedback = "\n".join(feedback_lines[:4])
+
         semantic_gaps = []
         for s in sorted(list(missing_skills)):
             semantic_gaps.append({
@@ -156,12 +252,24 @@ class ATSEngine:
             })
 
         return {
-            "ats_score": ats_score,
-            "overall_score": float(ats_score) / 100.0,
+            "ats_score": calibrated_score,
+            "overall_score": float(calibrated_score) / 100.0,
             "matched_skills": sorted(list(matched_skills)),
             "missing_skills": sorted(list(missing_skills)),
             "missing_keywords": sorted(list(missing_skills)),
             "semantic_gaps": semantic_gaps,
+            "actionable_feedback": actionable_feedback,
+            "penalties": {
+                "impact_verbs": impact_penalty,
+                "formatting": formatting_penalty,
+                "brevity": brevity_penalty,
+                "metrics": metric_penalty,
+                "total_penalties": total_penalties,
+                "weak_verbs_found": weak_verbs,
+                "formatting_issues": formatting_issues,
+                "brevity_issues": brevity_issues,
+                "metric_issues": metric_issues,
+            },
         }
 
     def calculate_score(self, resume_text: str, job_description: str) -> Dict[str, Any]:
@@ -201,9 +309,17 @@ class ATSEngine:
     def _extract_bullets(self, text: str) -> List[str]:
         """Split text into distinct bullet points or requirement statements."""
         lines = text.splitlines()
-        bullets = []
+        bullet_lines = []
+        general_lines = []
         for line in lines:
-            cleaned = re.sub(r"^[\s•\-\*\d\.\)]+", "", line).strip()
-            if len(cleaned) > 10:
-                bullets.append(cleaned)
-        return bullets if bullets else [text.strip()]
+            line_str = line.strip()
+            if not line_str:
+                continue
+            # Lines starting with bullet markers (-, *, •, digit.)
+            if re.match(r"^[\s•\-\*\d\.\)]+", line):
+                cleaned = re.sub(r"^[\s•\-\*\d\.\)]+", "", line).strip()
+                if len(cleaned) > 10:
+                    bullet_lines.append(cleaned)
+            elif len(line_str) > 20 and not line_str.endswith(":") and not line_str.isupper():
+                general_lines.append(line_str)
+        return bullet_lines if bullet_lines else (general_lines if general_lines else [text.strip()])

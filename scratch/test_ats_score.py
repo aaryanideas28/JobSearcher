@@ -2,6 +2,9 @@ import asyncio
 from src.agents.ats_engine import ATSEngine
 from src.agents.optimizer import ResumeOptimizer
 
+import pytest
+
+@pytest.mark.asyncio
 async def test_ats():
     engine = ATSEngine()
     optimizer = ResumeOptimizer()

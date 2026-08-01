@@ -66,7 +66,7 @@ def test_tavily_search_fallback_trigger() -> None:
         work_mode="Hybrid"
     )
 
-    assert len(fallbacks) == 3
+    assert len(fallbacks) >= 10
     assert fallbacks[0].location == "Mumbai"
     assert "Mumbai" in fallbacks[0].description
     assert "Hybrid" in fallbacks[0].description

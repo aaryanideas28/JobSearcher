@@ -18,6 +18,8 @@ from src.services.processor import process_match
 
 init_db()
 
+from fastapi.responses import RedirectResponse
+
 app = FastAPI(title="AI Resume Automation Platform")
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
@@ -29,6 +31,12 @@ app.include_router(hitl.router, prefix="/api/v1/hitl", tags=["human-in-the-loop"
 app.include_router(outreach.router, prefix="/api/v1/outreach", tags=["outreach"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 app.mount("/static", StaticFiles(directory="storage_workspace"), name="static")
+
+
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    """Redirect root access directly to the landing page and dashboard."""
+    return RedirectResponse(url="/dashboard/")
 
 
 
