@@ -13,6 +13,7 @@ from src.config.constants import (
     FORMATTING_ARTIFACT_PATTERNS,
     METRIC_PATTERNS_REGEX,
     PENALTY_WEIGHTS,
+    WEAK_ACTION_VERBS,
     WEAK_VERBS_REGEX,
 )
 from src.workflow.state import AgentState
@@ -80,6 +81,30 @@ COMMON_TECHNICAL_SKILLS: Set[str] = {
     "rest", "restful", "api", "apis", "microservices", "agile", "scrum", "kanban", "oop", "mvc", "tdd", "devops", "cloud computing", "machine learning", "deep learning", "artificial intelligence", "ai", "ml", "nlp", "llm", "llms", "rag", "langchain", "llama", "huggingface", "gitflow", "distributed systems", "system design", "data structures", "algorithms", "web3", "blockchain", "oauth", "jwt", "saml", "active directory",
     # Testing & Testing Tooling
     "testing", "unit test", "integration test", "pytest", "unittest", "mocha", "jest", "selenium", "playwright", "cypress", "junit", "testng", "cucumber", "postman"
+}
+
+STRONG_VERB_REPLACEMENTS: Dict[str, str] = {
+    "assisted": "Spearheaded",
+    "assisted with": "Spearheaded",
+    "helped": "Drove",
+    "helped to": "Drove",
+    "worked on": "Engineered",
+    "worked with": "Partnered with",
+    "responsible for": "Owned",
+    "duties included": "Delivered",
+    "handled": "Orchestrated",
+    "tasked with": "Led",
+    "participated in": "Led",
+    "served as": "Directed",
+    "contributed to": "Accelerated",
+    "involved in": "Executed",
+    "managed to": "Achieved",
+    "attempted to": "Implemented",
+    "supported": "Enabled",
+    "aided": "Championed",
+    "was part of": "Led",
+    "took part in": "Spearheaded",
+    "dealt with": "Resolved",
 }
 
 
@@ -270,7 +295,155 @@ class ATSEngine:
                 "brevity_issues": brevity_issues,
                 "metric_issues": metric_issues,
             },
+            "quick_fixes": self.generate_quick_fixes(resume_text, job_description, {
+                "impact_verbs": impact_penalty,
+                "formatting": formatting_penalty,
+                "brevity": brevity_penalty,
+                "metrics": metric_penalty,
+                "weak_verbs_found": weak_verbs,
+                "formatting_issues": formatting_issues,
+                "brevity_issues": brevity_issues,
+                "metric_issues": metric_issues,
+            }),
         }
+
+    def generate_quick_fixes(
+        self,
+        resume_text: str,
+        job_description: str,
+        penalties: Dict[str, Any] | None = None,
+    ) -> List[Dict[str, Any]]:
+        """Return top 3 interactive score-booster suggestions ordered by penalty severity."""
+        if not resume_text.strip() or not job_description.strip():
+            return []
+
+        if penalties is None:
+            penalties = self.calculate_ats_score(resume_text, job_description).get("penalties", {})
+
+        ranked = sorted(
+            [
+                ("impact_verbs", penalties.get("impact_verbs", 0), "Weak Verbs"),
+                ("metrics", penalties.get("metrics", 0), "Missing Metrics"),
+                ("formatting", penalties.get("formatting", 0), "Formatting Density"),
+                ("brevity", penalties.get("brevity", 0), "Brevity Issues"),
+            ],
+            key=lambda item: item[1],
+            reverse=True,
+        )
+
+        fixes: List[Dict[str, Any]] = []
+        for penalty_type, points, label in ranked:
+            if points <= 0:
+                continue
+            fix = self._build_quick_fix(penalty_type, resume_text, points, label, penalties)
+            if fix:
+                fixes.append(fix)
+            if len(fixes) >= 3:
+                break
+        return fixes
+
+    def _build_quick_fix(
+        self,
+        penalty_type: str,
+        resume_text: str,
+        points: int,
+        label: str,
+        penalties: Dict[str, Any],
+    ) -> Dict[str, Any] | None:
+        if penalty_type == "impact_verbs":
+            weak_verbs = penalties.get("weak_verbs_found") or []
+            for verb in weak_verbs:
+                pattern = re.compile(re.escape(verb), re.IGNORECASE)
+                match = pattern.search(resume_text)
+                if not match:
+                    continue
+                replacement = STRONG_VERB_REPLACEMENTS.get(verb.lower(), "Spearheaded")
+                updated = resume_text[: match.start()] + replacement + resume_text[match.end() :]
+                return {
+                    "penalty_type": penalty_type,
+                    "label": label,
+                    "points": points,
+                    "suggestion": f'Fix: Replace "{match.group()}" with "{replacement}"',
+                    "find_text": match.group(),
+                    "replace_text": replacement,
+                    "updated_resume": updated,
+                }
+            for verb in WEAK_ACTION_VERBS:
+                pattern = re.compile(r"\b" + re.escape(verb) + r"\b", re.IGNORECASE)
+                match = pattern.search(resume_text)
+                if not match:
+                    continue
+                replacement = STRONG_VERB_REPLACEMENTS.get(verb.lower(), "Spearheaded")
+                updated = resume_text[: match.start()] + replacement + resume_text[match.end() :]
+                return {
+                    "penalty_type": penalty_type,
+                    "label": label,
+                    "points": points,
+                    "suggestion": f'Fix: Replace "{match.group()}" with "{replacement}"',
+                    "find_text": match.group(),
+                    "replace_text": replacement,
+                    "updated_resume": updated,
+                }
+
+        if penalty_type == "metrics":
+            bullets = self._extract_bullets(resume_text)
+            for bullet in bullets:
+                if METRIC_PATTERNS_REGEX.search(bullet):
+                    continue
+                metric_suffix = ", improving throughput by 30%"
+                updated_bullet = bullet.rstrip(".") + metric_suffix + "."
+                updated = resume_text.replace(bullet, updated_bullet, 1)
+                return {
+                    "penalty_type": penalty_type,
+                    "label": label,
+                    "points": points,
+                    "suggestion": "Fix: Add quantified impact (e.g. \"improving throughput by 30%\")",
+                    "find_text": bullet,
+                    "replace_text": updated_bullet,
+                    "updated_resume": updated,
+                }
+
+        if penalty_type == "formatting":
+            if "|" in resume_text:
+                updated = resume_text.replace("|", " ")
+                return {
+                    "penalty_type": penalty_type,
+                    "label": label,
+                    "points": points,
+                    "suggestion": "Fix: Remove table pipes for ATS-friendly single-column text",
+                    "find_text": "|",
+                    "replace_text": " ",
+                    "updated_resume": updated,
+                }
+            if "\t\t" in resume_text:
+                updated = resume_text.replace("\t\t", " ")
+                return {
+                    "penalty_type": penalty_type,
+                    "label": label,
+                    "points": points,
+                    "suggestion": "Fix: Replace multi-column tab spacing with standard bullets",
+                    "find_text": "\t\t",
+                    "replace_text": " ",
+                    "updated_resume": updated,
+                }
+
+        if penalty_type == "brevity":
+            bullets = self._extract_bullets(resume_text)
+            for bullet in bullets:
+                if len(bullet.split()) < 8:
+                    expanded = bullet.rstrip(".") + " across cross-functional teams to deliver measurable business outcomes."
+                    updated = resume_text.replace(bullet, expanded, 1)
+                    return {
+                        "penalty_type": penalty_type,
+                        "label": label,
+                        "points": points,
+                        "suggestion": "Fix: Expand sparse bullet with outcome-focused detail",
+                        "find_text": bullet,
+                        "replace_text": expanded,
+                        "updated_resume": updated,
+                    }
+
+        return None
 
     def calculate_score(self, resume_text: str, job_description: str) -> Dict[str, Any]:
         """Wrapper method alias to satisfy calculate_score calls directly."""

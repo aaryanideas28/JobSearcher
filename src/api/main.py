@@ -39,6 +39,24 @@ from fastapi.staticfiles import StaticFiles
 
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 app.mount("/static", StaticFiles(directory="storage_workspace"), name="static")
+app.mount("/static/constants", StaticFiles(directory="src/constants"), name="constants")
+
+# Progress WebSocket endpoint for real‑time UI updates
+from fastapi import WebSocket
+from src.api.progress import progress_hub
+
+@app.websocket("/api/v1/ws/{session_id}")
+async def progress_ws(websocket: WebSocket, session_id: str):
+    """Accept a WebSocket and subscribe it to progress events for *session_id*."""
+    await progress_hub.connect(session_id, websocket)
+    try:
+        while True:
+            # Keep connection alive; client will receive messages via hub.publish
+            await websocket.receive_text()
+    except Exception:
+        pass
+    finally:
+        await progress_hub.disconnect(session_id, websocket)
 
 
 @app.get("/", tags=["root"])

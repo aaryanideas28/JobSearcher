@@ -1367,6 +1367,59 @@
       }
     };
 
+    const COLLEGES_LIST = [
+      "VJTI Mumbai", "IIT Bombay", "IIT Delhi", "IIT Madras", "IIT Kharagpur",
+      "IIT Roorkee", "IIT Kanpur", "IIT Guwahati", "IIT Hyderabad", "IIT BHU",
+      "BITS Pilani", "BITS Goa", "BITS Hyderabad", "ICT Mumbai", "COEP Pune",
+      "NIT Trichy", "NIT Surathkal", "NIT Warangal", "DTU Delhi", "NSUT Delhi",
+      "IIIT Hyderabad", "IIIT Bangalore", "IIIT Delhi", "IIIT Allahabad", "VIT Vellore",
+      "Manipal Institute of Technology", "SRMC Chennai", "College of Engineering Guindy",
+      "Jadavpur University", "PSG College of Technology", "RV College of Engineering",
+      "PES University", "Ramaiah Institute of Technology", "Thapar University", "PEC Chandigarh",
+      "HBTU Kanpur", "Veermata Jijabai Technological Institute", "Walchand College of Engineering",
+      "Sardar Patel College of Engineering", "Cummins College of Engineering", "DJ Sanghvi",
+      "K J Somaiya", "NMIMS", "Symbiosis Institute of Technology", "Army Institute of Technology",
+      "Government College of Engineering Amravati", "SGGS Nanded", "Government College of Engineering Karad",
+      "Sardar Patel Institute of Technology", "MS Ramaiah Institute of Technology", "BMS College of Engineering",
+      "Bangalore Institute of Technology", "Sir M. Visvesvaraya Institute of Technology", "Nirma University",
+      "DA-IICT", "L D College of Engineering", "Vishwakarma Institute of Technology Pune",
+      "MIT World Peace University Pune", "Pimpri Chinchwad College of Engineering", "Pune Institute of Computer Technology",
+      "Sinhgad College of Engineering Pune", "Government College of Engineering Aurangabad",
+      "Walchand Institute of Technology Solapur", "RCOEM Nagpur", "VNIT Nagpur", "MANIT Bhopal",
+      "MNNIT Allahabad", "MNIT Jaipur", "NIT Calicut", "NIT Rourkela", "NIT Silchar",
+      "NIT Kurukshetra", "NIT Durgapur", "NIT Jalandhar", "NIT Hamirpur", "NIT Patna",
+      "NIT Raipur", "NIT Srinagar", "NIT Agartala", "NIT Meghalaya", "NIT Goa",
+      "NIT Jamshedpur", "IIIT Gwalior", "IIIT Jabalpur", "IIIT Kancheepuram", "IIIT Kottayam",
+      "IIIT Pune", "Stanford University", "MIT", "Carnegie Mellon University", "UC Berkeley",
+      "Harvard University", "University of Cambridge", "University of Oxford", "Imperial College London",
+      "ETH Zurich", "National University of Singapore", "Nanyang Technological University", "Tsinghua University",
+      "Peking University", "University of Toronto", "University of Waterloo", "University of British Columbia",
+      "Caltech", "Princeton University", "Yale University", "Columbia University", "Cornell University",
+      "University of Pennsylvania", "UCLA", "UCSD", "University of Washington", "Georgia Tech",
+      "UIUC", "University of Michigan", "UT Austin", "EPFL", "University of Tokyo",
+      "Kyoto University", "Seoul National University", "KAIST"
+    ];
+
+    const LOCATIONS_LIST = [
+      "Bengaluru", "Mumbai", "Pune", "Hyderabad", "Delhi NCR", "Chennai",
+      "Kolkata", "Ahmedabad", "San Francisco, CA", "New York, NY", "London, UK",
+      "Singapore", "Remote", "Hybrid", "Austin, TX", "Seattle, WA", "Boston, MA",
+      "Toronto, Canada", "Berlin, Germany", "Paris, France", "Tokyo, Japan", "Sydney, Australia"
+    ];
+
+    const DEGREES_LIST = [
+      "B.Tech / B.E. in Computer Science",
+      "B.Tech / B.E. in Information Technology",
+      "B.Tech / B.E. in Electronics & Telecommunication",
+      "B.Tech / B.E. in Artificial Intelligence & Data Science",
+      "B.Tech / B.E. in Mechanical Engineering",
+      "M.Tech / M.E. in Computer Science",
+      "B.S. in Computer Science",
+      "M.S. in Computer Science",
+      "B.CA / M.CA",
+      "Other Engineering / Technical Degree"
+    ];
+
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(".get-started-btn").forEach(btn => {
         btn.addEventListener("click", window.showDashboardView);
@@ -1374,6 +1427,20 @@
       if (window.location.hash === "#dashboard") {
         window.showDashboardView();
       }
+
+      // Populate datalists dynamically
+      const populateDatalist = (id, items) => {
+        let dl = document.getElementById(id);
+        if (!dl) {
+          dl = document.createElement("datalist");
+          dl.id = id;
+          document.body.appendChild(dl);
+        }
+        dl.innerHTML = items.map(item => `<option value="${item}"></option>`).join("");
+      };
+      populateDatalist("location-options", LOCATIONS_LIST);
+      populateDatalist("degree-options", DEGREES_LIST);
+      populateDatalist("institution-options", COLLEGES_LIST);
     });
 
     const api = "/api/v1";
@@ -2060,24 +2127,11 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <div class="form-group" style="margin-bottom: 0;">
             <label>Institution</label>
-            <input type="text" class="edu-inst" value="${inst}" placeholder="e.g. Stanford University" required>
+            <input type="text" class="edu-inst" value="${inst}" list="institution-options" placeholder="e.g. Stanford University" required>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label>Degree</label>
-            <select class="edu-deg" required style="width: 100%; height: 44px; background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--card-border); border-radius: 10px; padding: 0 12px; font-size: 14px;">
-              <option value="" ${!deg ? "selected" : ""}>Select Degree...</option>
-              <option value="B.Tech / B.E." ${deg && (deg.includes("B.Tech") || deg.includes("B.E")) ? "selected" : ""}>B.Tech / B.E. (Bachelor of Technology / Engineering)</option>
-              <option value="B.S. / B.Sc" ${deg && (deg.includes("B.S") || deg.includes("B.Sc") || deg.includes("Bachelor of Science")) ? "selected" : ""}>B.S. / B.Sc (Bachelor of Science)</option>
-              <option value="B.C.A. / B.C.S." ${deg && deg.includes("B.C.A") ? "selected" : ""}>B.C.A. / B.C.S. (Computer Applications)</option>
-              <option value="M.Tech / M.E." ${deg && (deg.includes("M.Tech") || deg.includes("M.E")) ? "selected" : ""}>M.Tech / M.E. (Master of Technology / Engineering)</option>
-              <option value="M.S. / M.Sc" ${deg && (deg.includes("M.S") || deg.includes("M.Sc") || deg.includes("Master of Science")) ? "selected" : ""}>M.S. / M.Sc (Master of Science)</option>
-              <option value="M.C.A." ${deg && deg.includes("M.C.A") ? "selected" : ""}>M.C.A. (Master of Computer Applications)</option>
-              <option value="M.B.A. / B.B.A." ${deg && (deg.includes("M.B.A") || deg.includes("B.B.A")) ? "selected" : ""}>M.B.A. / B.B.A. (Business Administration)</option>
-              <option value="Ph.D. / Doctorate" ${deg && (deg.includes("Ph.D") || deg.includes("Doctor")) ? "selected" : ""}>Ph.D. / Doctorate</option>
-              <option value="Diploma / Associate" ${deg && deg.includes("Diploma") ? "selected" : ""}>Diploma / Associate Degree</option>
-              <option value="High School Diploma" ${deg && deg.includes("High School") ? "selected" : ""}>High School Diploma</option>
-              <option value="${deg || 'Other'}" ${deg && !['B.Tech / B.E.', 'B.S. / B.Sc', 'B.C.A. / B.C.S.', 'M.Tech / M.E.', 'M.S. / M.Sc', 'M.C.A.', 'M.B.A. / B.B.A.', 'Ph.D. / Doctorate', 'Diploma / Associate', 'High School Diploma'].some(d => deg.includes(d.split(' ')[0])) ? "selected" : ""}>${deg || 'Other'}</option>
-            </select>
+            <input type="text" class="edu-deg" value="${deg}" list="degree-options" placeholder="e.g. B.Tech / B.E. in Computer Science" required>
           </div>
           <div class="form-group" style="margin-bottom: 0;">
             <label>Specialization</label>
@@ -2698,7 +2752,6 @@
       });
     }
 
-    // Auto-expand Outreach Email Draft textarea
     function autoExpandTextarea(el) {
       if (!el) return;
       el.style.height = "auto";
@@ -2711,31 +2764,9 @@
     }
   </script>
 
-  <!-- Predefined Selection Datalists for Degree and Location -->
-  <datalist id="degree-options">
-    <option value="Bachelor of Technology (B.Tech)"></option>
-    <option value="Bachelor of Engineering (B.E.)"></option>
-    <option value="Bachelor of Science (B.S.)"></option>
-    <option value="Bachelor of Computer Applications (BCA)"></option>
-    <option value="Master of Science (M.S.)"></option>
-    <option value="Master of Technology (M.Tech)"></option>
-    <option value="Master of Computer Applications (MCA)"></option>
-    <option value="Master of Business Administration (MBA)"></option>
-    <option value="Ph.D. in Computer Science"></option>
-    <option value="Diploma in Computer Engineering"></option>
-  </datalist>
-
-  <datalist id="location-options">
-    <option value="Mumbai, Maharashtra, India"></option>
-    <option value="Bangalore, Karnataka, India"></option>
-    <option value="Delhi NCR, India"></option>
-    <option value="Pune, Maharashtra, India"></option>
-    <option value="Hyderabad, Telangana, India"></option>
-    <option value="Chennai, Tamil Nadu, India"></option>
-    <option value="San Francisco, CA, USA"></option>
-    <option value="New York, NY, USA"></option>
-    <option value="London, United Kingdom"></option>
-    <option value="Remote"></option>
-  </datalist>
+  <!-- Predefined Selection Datalists for Degree, Location, and Institution -->
+  <datalist id="degree-options"></datalist>
+  <datalist id="location-options"></datalist>
+  <datalist id="institution-options"></datalist>
 </body>
 </html>

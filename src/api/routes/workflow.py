@@ -33,6 +33,7 @@ class ManualOptimizeDraftRequest(BaseModel):
     skills_to_highlight: list[str] = Field(default_factory=list)
     intake_mode: str = Field(default="upload")
     structured_intake: dict[str, Any] = Field(default_factory=dict)
+    client_session_id: str | None = None
 
 
 @router.get("/ollama/status")
@@ -49,7 +50,16 @@ async def manual_optimize_and_draft(
 ) -> dict[str, Any]:
     """Run resume optimization and email drafting for a manually chosen job."""
 
-    session_id = str(uuid4())
+    from src.api.progress import progress_hub
+
+    session_id = payload.client_session_id or str(uuid4())
+    if payload.client_session_id:
+        await progress_hub.publish(session_id, {
+            "type": "progress",
+            "state": "optimizing",
+            "pct": 75,
+            "message": "Optimizing resume bullet points & ATS keywords...",
+        })
     resume_version = db.get(ResumeVersion, payload.resume_version_id)
     job_target = db.get(JobTarget, payload.job_target_id)
     if resume_version is None:
@@ -226,6 +236,14 @@ async def manual_optimize_and_draft(
     )
     db.add(workflow_session)
     db.commit()
+
+    if payload.client_session_id:
+        await progress_hub.publish(session_id, {
+            "type": "progress",
+            "state": "complete",
+            "pct": 100,
+            "message": "Optimization complete!",
+        })
 
     return {
         "status": status_str,

@@ -35,6 +35,7 @@ class ResumeUploadRequest(BaseModel):
     intake_mode: str | None = "upload"
     version_label: str = Field(default="original", min_length=1, max_length=100)
     template_id: str = "minimal_ats"
+    session_id: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -62,7 +63,7 @@ async def _discover_and_persist_jobs(user_id: int, db: Session, source: str = "t
     agent = JobDiscoveryAgent()
     postings = await agent.discover(
         query=query,
-        max_results=6,
+        max_results=12,
         source=source,
         preferred_locations=preferred_locations,
         work_mode=work_mode,
@@ -124,6 +125,10 @@ async def upload_resume(
         "full_name": payload.full_name,
     })
 
+    from src.api.progress import progress_hub
+    if payload.session_id:
+        await progress_hub.publish(payload.session_id, {"type": "progress", "state": "parsing", "pct": 25, "message": "Parsing profile & preferences..."})
+
     user = db.query(User).filter(User.email == payload.user_email).one_or_none()
     if user is None:
         user = User(email=payload.user_email, full_name=payload.full_name)
@@ -141,7 +146,13 @@ async def upload_resume(
     db.commit()
     db.refresh(resume_version)
 
+    if payload.session_id:
+        await progress_hub.publish(payload.session_id, {"type": "progress", "state": "searching", "pct": 50, "message": "Searching live tech jobs via Tavily..."})
+
     discovered_jobs = await _discover_and_persist_jobs(user.id, db, source=source)
+
+    if payload.session_id:
+        await progress_hub.publish(payload.session_id, {"type": "progress", "state": "complete", "pct": 100, "message": "Job discovery complete!"})
 
     return {
         "status": "stored",
@@ -161,11 +172,16 @@ async def upload_resume_file(
     version_label: Annotated[str, Form(min_length=1, max_length=100)] = "uploaded",
     template_id: Annotated[str, Form(min_length=1)] = "minimal_ats",
     source: str = "tavily",
+    session_id: Annotated[str | None, Form()] = None,
 ) -> dict[str, Any]:
     """Upload a resume file, parse text, store the file, and create a resume version."""
     from src.security.validation import validate_candidate_intake
     if not file or not file.filename:
         validate_candidate_intake({"intake_mode": "upload", "file_attached": False})
+
+    from src.api.progress import progress_hub
+    if session_id:
+        await progress_hub.publish(session_id, {"type": "progress", "state": "parsing", "pct": 25, "message": "Parsing resume file & profile..."})
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     original_name = Path(file.filename or "resume.txt").name
@@ -210,8 +226,13 @@ async def upload_resume_file(
     db.commit()
     db.refresh(resume_version)
 
+    if session_id:
+        await progress_hub.publish(session_id, {"type": "progress", "state": "searching", "pct": 50, "message": "Searching live tech jobs via Tavily..."})
+
     discovered_jobs = await _discover_and_persist_jobs(user.id, db, source=source)
 
+    if session_id:
+        await progress_hub.publish(session_id, {"type": "progress", "state": "complete", "pct": 100, "message": "Job discovery complete!"})
 
     return {
         "status": "parsed_and_stored",
@@ -395,5 +416,6 @@ async def calculate_ats(payload: CalculateATSRequest) -> dict[str, Any]:
         "actionable_feedback": result.get("actionable_feedback", ""),
         "penalties": penalties,
         "weak_verbs": weak_verbs,
+        "quick_fixes": result.get("quick_fixes", []),
     }
 
