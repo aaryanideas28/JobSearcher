@@ -8,6 +8,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    window.tailwind = {
+      config: {
+        corePlugins: {
+          preflight: false
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -585,7 +595,6 @@
           <select id="searchSource">
             <option value="tavily">Tavily Web Search</option>
             <option value="linkedin_tavily">LinkedIn (via Tavily)</option>
-            <option value="linkedin_local">LinkedIn (Local Scraper)</option>
           </select>
         </div>
 
@@ -651,6 +660,17 @@
           </div>
         </div>
 
+      <!-- Onboarding Mode Toggle -->
+      <div class="mode-toggle-container" style="display: flex; gap: 12px; margin-bottom: 20px; background: rgba(255,255,255,0.02); border: 1px solid var(--card-border); padding: 6px; border-radius: 12px;">
+        <button id="toggle-upload-mode" class="toggle-mode-btn active" style="flex: 1; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 13px; background: var(--accent); color: white; border: none; cursor: pointer; transition: all 0.2s;" type="button">
+          📄 Upload Resume
+        </button>
+        <button id="toggle-scratch-mode" class="toggle-mode-btn" style="flex: 1; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 13px; background: transparent; color: var(--text-muted); border: 1px solid transparent; cursor: pointer; transition: all 0.2s;" type="button">
+          ✍️ Build from Scratch
+        </button>
+      </div>
+
+      <div id="upload-mode-fields">
         <div class="form-group">
           <label>Upload Resume (PDF, DOCX, TXT, MD)</label>
           <div class="file-upload-container">
@@ -663,6 +683,145 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div id="scratch-mode-fields" style="display: none;">
+        <div class="accordion" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; margin-bottom: 16px;">
+          <!-- Contact Info & Target Settings -->
+          <div class="accordion-item" style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(255,255,255,0.01); overflow: hidden;">
+            <div class="accordion-header" style="padding: 14px 18px; font-weight: 700; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);" onclick="toggleAccordion(this)">
+              <span>📞 Contact Details</span>
+              <span class="accordion-icon">▼</span>
+            </div>
+            <div class="accordion-body" style="padding: 18px; display: block; border-top: 1px solid var(--card-border);">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Phone</label>
+                  <input type="text" id="scratch-phone" placeholder="+1-123-456-7890">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Location</label>
+                  <input type="text" id="scratch-location" placeholder="City, Country">
+                </div>
+                <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+                  <label>LinkedIn Link</label>
+                  <input type="text" id="scratch-linkedin" placeholder="linkedin.com/in/username">
+                </div>
+                <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+                  <label>GitHub / Portfolio Link</label>
+                  <input type="text" id="scratch-github" placeholder="github.com/username">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Professional Summary -->
+          <div class="accordion-item" style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(255,255,255,0.01); overflow: hidden;">
+            <div class="accordion-header" style="padding: 14px 18px; font-weight: 700; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);" onclick="toggleAccordion(this)">
+              <span>✍️ Professional Summary</span>
+              <span class="accordion-icon">▶</span>
+            </div>
+            <div class="accordion-body" style="padding: 18px; display: none; border-top: 1px solid var(--card-border);">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label>Professional Summary (2-4 lines)</label>
+                <textarea id="scratch-summary" style="height: 80px;" placeholder="Results-driven Software Engineer with 2+ years of experience specializing in backend architectures..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Technical Skills -->
+          <div class="accordion-item" style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(255,255,255,0.01); overflow: hidden;">
+            <div class="accordion-header" style="padding: 14px 18px; font-weight: 700; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);" onclick="toggleAccordion(this)">
+              <span>🛠️ Technical Skills</span>
+              <span class="accordion-icon">▶</span>
+            </div>
+            <div class="accordion-body" style="padding: 18px; display: none; border-top: 1px solid var(--card-border);">
+              <div class="stack" style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Programming Languages (comma separated)</label>
+                  <input type="text" id="scratch-skills-languages" placeholder="Python, SQL, JavaScript">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Frameworks (comma separated)</label>
+                  <input type="text" id="scratch-skills-frameworks" placeholder="FastAPI, React, Django">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Databases (comma separated)</label>
+                  <input type="text" id="scratch-skills-databases" placeholder="PostgreSQL, Redis, MongoDB">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Cloud & DevOps (comma separated)</label>
+                  <input type="text" id="scratch-skills-cloud" placeholder="Docker, AWS, Kubernetes">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Other Tools (comma separated)</label>
+                  <input type="text" id="scratch-skills-other" placeholder="Git, JIRA, Postman">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Education -->
+          <div class="accordion-item" style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(255,255,255,0.01); overflow: hidden;">
+            <div class="accordion-header" style="padding: 14px 18px; font-weight: 700; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);" onclick="toggleAccordion(this)">
+              <span>🎓 Education</span>
+              <span class="accordion-icon">▶</span>
+            </div>
+            <div class="accordion-body" style="padding: 18px; display: none; border-top: 1px solid var(--card-border);">
+              <div id="education-entries"></div>
+              <button type="button" class="secondary" style="font-size: 12px; padding: 6px 12px; border-radius: 6px;" onclick="addEducationEntry()">+ Add Education</button>
+            </div>
+          </div>
+
+          <!-- Work Experience -->
+          <div class="accordion-item" style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(255,255,255,0.01); overflow: hidden;">
+            <div class="accordion-header" style="padding: 14px 18px; font-weight: 700; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);" onclick="toggleAccordion(this)">
+              <span>💼 Work Experience</span>
+              <span class="accordion-icon">▶</span>
+            </div>
+            <div class="accordion-body" style="padding: 18px; display: none; border-top: 1px solid var(--card-border);">
+              <div id="experience-entries"></div>
+              <button type="button" class="secondary" style="font-size: 12px; padding: 6px 12px; border-radius: 6px;" onclick="addExperienceEntry()">+ Add Experience</button>
+            </div>
+          </div>
+
+          <!-- Projects -->
+          <div class="accordion-item" style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(255,255,255,0.01); overflow: hidden;">
+            <div class="accordion-header" style="padding: 14px 18px; font-weight: 700; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);" onclick="toggleAccordion(this)">
+              <span>🚀 Projects</span>
+              <span class="accordion-icon">▶</span>
+            </div>
+            <div class="accordion-body" style="padding: 18px; display: none; border-top: 1px solid var(--card-border);">
+              <div id="project-entries"></div>
+              <button type="button" class="secondary" style="font-size: 12px; padding: 6px 12px; border-radius: 6px;" onclick="addProjectEntry()">+ Add Project</button>
+            </div>
+          </div>
+
+          <!-- Certifications -->
+          <div class="accordion-item" style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(255,255,255,0.01); overflow: hidden;">
+            <div class="accordion-header" style="padding: 14px 18px; font-weight: 700; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);" onclick="toggleAccordion(this)">
+              <span>📜 Certifications</span>
+              <span class="accordion-icon">▶</span>
+            </div>
+            <div class="accordion-body" style="padding: 18px; display: none; border-top: 1px solid var(--card-border);">
+              <div id="certification-entries"></div>
+              <button type="button" class="secondary" style="font-size: 12px; padding: 6px 12px; border-radius: 6px;" onclick="addCertificationEntry()">+ Add Certification</button>
+            </div>
+          </div>
+
+          <!-- Achievements -->
+          <div class="accordion-item" style="border: 1px solid var(--card-border); border-radius: 12px; background: rgba(255,255,255,0.01); overflow: hidden;">
+            <div class="accordion-header" style="padding: 14px 18px; font-weight: 700; font-size: 13px; color: var(--text-primary); cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);" onclick="toggleAccordion(this)">
+              <span>🏆 Achievements</span>
+              <span class="accordion-icon">▶</span>
+            </div>
+            <div class="accordion-body" style="padding: 18px; display: none; border-top: 1px solid var(--card-border);">
+              <div id="achievement-entries"></div>
+              <button type="button" class="secondary" style="font-size: 12px; padding: 6px 12px; border-radius: 6px;" onclick="addAchievementEntry()">+ Add Achievement</button>
+            </div>
+          </div>
+        </div>
+      </div>
 
         <button type="submit" id="submit-btn" style="margin-top: 10px;">
           <span>Search Target Jobs</span>
@@ -700,18 +859,39 @@
       <div id="discoveredJobsSection" style="margin-top: 16px; margin-bottom: 24px;" hidden>
         <h3 style="margin-bottom: 12px; color: var(--text-primary);">🔍 Discovered Jobs</h3>
         <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-          Select a role to optimize your resume and generate email outreach:
+          The system queried target jobs matching your target role and skills. Select one to optimize your resume and draft outreach:
         </p>
-        <div id="jobCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
-          <!-- JS will populate cards here -->
+        <div id="jobCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;"></div>
+      </div>
+
+      <!-- HITL ATS Threshold Warning Card -->
+      <div id="atsWarningCard" style="display: none; background: rgba(245, 158, 11, 0.05); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 8px 32px rgba(245, 158, 11, 0.15); transition: all 0.3s ease;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+          <span id="atsWarningBadge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--warning); padding: 5px 14px; border-radius: 9999px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; font-family: 'Space Grotesk', sans-serif;">
+            ⚠️ ATS Match Score Low (0%)
+          </span>
+        </div>
+        <p style="font-size: 14px; color: var(--text-primary); margin: 0 0 20px 0; line-height: 1.6; opacity: 0.95;">
+          Your resume match score is below our 80% recommended threshold. Would you like the agent to automatically tailor your resume bullet points for this position?
+        </p>
+        <div style="display: flex; gap: 14px;">
+          <button id="btnAutoOptimize" class="success" style="font-size: 13px; padding: 10px 18px; border-radius: 8px; font-weight: 600;" type="button">
+            🪄 Auto-Optimize Resume
+          </button>
+          <button id="btnProceedAsIs" class="secondary" style="font-size: 13px; padding: 10px 18px; border-radius: 8px; font-weight: 600;" type="button">
+            ⏩ Proceed With Current Resume
+          </button>
         </div>
       </div>
 
       <div id="review" class="review-grid" hidden>
         <div class="review-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
             <h3 style="margin: 0;"><span>✏️</span> Tailored Resume Text</h3>
-            <a id="downloadResumeLink" href="#" target="_blank" style="display: none; padding: 6px 12px; background: var(--accent); color: white; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">📥 Download DOCX</a>
+            <div id="unoptimizedBadge" style="display: none; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); color: var(--accent); padding: 4px 10px; border-radius: 9999px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">
+              📄 Using Original Uploaded Resume (Unmodified)
+            </div>
+            <a id="downloadResumeLink" href="#" download target="_blank" style="display: none; padding: 6px 12px; background: var(--accent); color: white; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; margin-left: auto;">📥 Download DOCX</a>
           </div>
           <textarea id="optimizedResume"></textarea>
           <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
@@ -741,12 +921,47 @@
         </div>
       </div>
     </section>
+
+    <!-- High-priority HITL ATS Optimization Decision Modal -->
+    <div id="hitlDecisionModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease;">
+      <div style="background: #1e1e2e; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 20px; max-width: 500px; width: 90%; padding: 32px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+        <h2 id="hitlModalTitle" style="color: #ffffff; font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-bottom: 12px;">Low ATS Score Detected</h2>
+        <p id="hitlModalSubtitle" style="color: #a6adc8; font-size: 15px; line-height: 1.6; margin-bottom: 28px;">
+          Your uploaded resume scored below our 80% threshold for this role. Would you like our AI agent to refactor and optimize your resume to 85%+?
+        </p>
+        <div id="hitlModalActions" style="display: flex; flex-direction: column; gap: 12px;">
+          <button id="btnHitlOptimize" class="success" style="width: 100%; padding: 14px; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;" type="button">
+            ✨ Auto-Optimize Resume
+          </button>
+          <button id="btnHitlUseOriginal" class="secondary" style="width: 100%; padding: 14px; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;" type="button">
+            📄 Use Original Resume
+          </button>
+        </div>
+    </div>
+
+    <!-- Centered Modal Overlay for Low ATS & Insufficient Details -->
+    <div id="lowAtsModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-[20000] flex items-center justify-center p-4" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 20000; align-items: center; justify-content: center; padding: 16px; opacity: 0; transition: opacity 0.3s ease;">
+      <div class="max-w-md w-full bg-[#0F172A] border border-red-500/30 rounded-2xl p-6 shadow-2xl text-center" style="background-color: #0F172A; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 16px; padding: 24px; max-width: 448px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; margin: auto;">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-500/10 text-red-500 text-3xl mb-4 animate-bounce" style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background-color: rgba(239, 68, 68, 0.1); color: #ef4444; font-size: 30px; margin-bottom: 16px;">
+          ⚠️
+        </div>
+        <h2 class="text-white font-bold text-xl mb-3 font-['Space_Grotesk']" style="color: #ffffff; font-weight: 700; font-size: 20px; margin-top: 0; margin-bottom: 12px; font-family: 'Space Grotesk', sans-serif;">Low ATS Match & Insufficient Details</h2>
+        <p id="lowAtsModalDescription" class="text-slate-300 text-sm leading-relaxed mb-6" style="color: #cbd5e1; font-size: 14px; line-height: 1.625; margin-bottom: 24px;">
+          The uploaded resume lacks sufficient experience and skills for safe AI optimization without making assumptions.
+        </p>
+        <button id="btnSwitchToScratch" class="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg transition-all duration-200 cursor-pointer" style="width: 100%; padding: 14px 0; background-color: #dc2626; color: #ffffff; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; transition: all 0.2s;" type="button">
+          ✍️ Switch to Build from Scratch
+        </button>
+      </div>
+    </div>
   </main>
 
   <script>
     const api = "/api/v1";
     let latest = null;
     let gate3Approved = false;
+    let currentMode = "upload";
 
     // Theme Toggle Functionality
     const themeToggleBtn = document.getElementById("theme-toggle");
@@ -911,16 +1126,236 @@
       return document.getElementById(id).value.split(",").map((item) => item.trim()).filter(Boolean);
     }
 
+    async function fetchWithTimeoutAndRetry(url, options = {}, timeoutMs = 10000, maxRetries = 2) {
+      let attempt = 0;
+      while (true) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeoutMs);
+        
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+          });
+          clearTimeout(id);
+          if (!response.ok) {
+            throw new Error(await response.text());
+          }
+          return await response.json();
+        } catch (error) {
+          clearTimeout(id);
+          attempt++;
+          if (attempt > maxRetries) {
+            throw error;
+          }
+          console.warn(`Request failed. Retrying...`, error);
+          const status = document.getElementById("status");
+          if (status) {
+            status.innerHTML = `<div class="spinner"></div> ⚠️ Connection spike. Retrying job search (Attempt ${attempt}/${maxRetries})...`;
+          }
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      }
+    }
+
     async function post(path, body) {
-      const response = await fetch(api + path, {
+      return fetchWithTimeoutAndRetry(api + path, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(body)
       });
-      if (!response.ok) {
-        throw new Error(await response.text());
+    }
+
+    function showHitlDecisionModal(atsScore, threadId, interruptType) {
+      const modal = document.getElementById("hitlDecisionModal");
+      const title = document.getElementById("hitlModalTitle");
+      const subtitle = document.getElementById("hitlModalSubtitle");
+      const actionsContainer = document.getElementById("hitlModalActions");
+
+      modal.style.display = "flex";
+      setTimeout(() => {
+        modal.style.opacity = "1";
+      }, 50);
+
+      function hideDecisionModal() {
+        modal.style.opacity = "0";
+        setTimeout(() => { modal.style.display = "none"; }, 300);
       }
-      return response.json();
+
+      if (interruptType === "insufficient_data_warning" || interruptType === "insufficient_data") {
+        title.textContent = `⚠️ Low ATS Score (${atsScore}%) & Missing Essential Info`;
+        subtitle.textContent = "Your uploaded resume lacks sufficient experience/skill details for our AI to generate an accurate, high-scoring document without making assumptions.";
+        
+        actionsContainer.innerHTML = `
+          <button id="btnHitlSwitchScratch" class="success" style="width: 100%; padding: 14px; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;" type="button">
+            ✍️ Switch to Build from Scratch (Recommended)
+          </button>
+          <button id="btnHitlUseOriginal" class="secondary" style="width: 100%; padding: 14px; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;" type="button">
+            📄 Keep Original Resume Unchanged
+          </button>
+        `;
+        
+        document.getElementById("btnHitlSwitchScratch").onclick = async () => {
+          hideDecisionModal();
+          currentMode = "build_from_scratch";
+          document.getElementById("toggle-scratch-mode").click();
+          updateStep('intake');
+          await handleHitlDecisionSubmit(threadId, "switch_to_scratch");
+        };
+        
+        document.getElementById("btnHitlUseOriginal").onclick = async () => {
+          hideDecisionModal();
+          await handleHitlDecisionSubmit(threadId, "keep_original");
+        };
+      } else {
+        title.textContent = `⚠️ Low ATS Score Detected (${atsScore}%)`;
+        subtitle.textContent = "Would you like our AI agent to auto-optimize your uploaded resume to 85%+ ATS compatibility for this role?";
+        
+        actionsContainer.innerHTML = `
+          <button id="btnHitlOptimize" class="success" style="width: 100%; padding: 14px; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;" type="button">
+            ✨ Auto-Optimize Resume
+          </button>
+          <button id="btnHitlUseOriginal" class="secondary" style="width: 100%; padding: 14px; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;" type="button">
+            📄 Keep Original Resume Unchanged
+          </button>
+        `;
+        
+        document.getElementById("btnHitlOptimize").onclick = async () => {
+          hideDecisionModal();
+          await handleHitlDecisionSubmit(threadId, "optimize");
+        };
+        
+        document.getElementById("btnHitlUseOriginal").onclick = async () => {
+          hideDecisionModal();
+          await handleHitlDecisionSubmit(threadId, "keep_original");
+        };
+      }
+    }
+
+    window.showLowAtsInsufficientModal = function(errorMessage) {
+      const modal = document.getElementById("lowAtsModal");
+      const desc = document.getElementById("lowAtsModalDescription");
+      if (desc) {
+        desc.textContent = errorMessage || "The uploaded resume lacks sufficient experience and skills for safe AI optimization without making assumptions.";
+      }
+      if (modal) {
+        modal.style.display = "flex";
+        setTimeout(() => {
+          modal.style.opacity = "1";
+        }, 50);
+      }
+    };
+
+    window.hideLowAtsModal = function() {
+      const modal = document.getElementById("lowAtsModal");
+      if (modal) {
+        modal.style.opacity = "0";
+        setTimeout(() => {
+          modal.style.display = "none";
+        }, 300);
+      }
+    };
+
+    function handleBackendError(error, inlineStatusElementId = "status") {
+      let errMsg = error.message || "";
+      let cleanMsg = errMsg;
+      
+      try {
+        const parsed = JSON.parse(errMsg);
+        if (parsed && parsed.detail) {
+          if (typeof parsed.detail === "string") {
+            cleanMsg = parsed.detail;
+          } else if (typeof parsed.detail === "object" && parsed.detail.message) {
+            cleanMsg = parsed.detail.message;
+          } else {
+            cleanMsg = JSON.stringify(parsed.detail);
+          }
+        }
+      } catch (e) {}
+      
+      if (cleanMsg.startsWith('{"detail":')) {
+        try {
+          const parsed = JSON.parse(cleanMsg);
+          cleanMsg = parsed.detail || cleanMsg;
+        } catch(e) {}
+      }
+      
+      const lowerMsg = cleanMsg.toLowerCase();
+      const isLowAtsInsufficient = (lowerMsg.includes("ats") || lowerMsg.includes("insufficient")) && 
+                                    (lowerMsg.includes("scratch") || lowerMsg.includes("below 80"));
+                                    
+      if (isLowAtsInsufficient) {
+        window.showLowAtsInsufficientModal(cleanMsg);
+      }
+      
+      const status = document.getElementById(inlineStatusElementId);
+      if (status) {
+        status.className = "status-message error";
+        status.textContent = "Error: " + cleanMsg;
+      }
+    }
+
+    document.getElementById("btnSwitchToScratch").addEventListener("click", () => {
+      window.hideLowAtsModal();
+      
+      const fileInput = document.getElementById("resumeFile");
+      if (fileInput) fileInput.value = "";
+      const textLabel = document.getElementById("file-name-text");
+      if (textLabel) textLabel.textContent = "";
+      const nameLabel = document.getElementById("file-name-label");
+      if (nameLabel) nameLabel.style.display = "none";
+      
+      const status = document.getElementById("status");
+      if (status) {
+        status.className = "status-message";
+        status.textContent = "Ready to optimize resume and draft outreach.";
+      }
+      
+      currentMode = "build_from_scratch";
+      const btnScratch = document.getElementById("toggle-scratch-mode");
+      if (btnScratch) btnScratch.click();
+      
+      setTimeout(() => {
+        const fullNameInput = document.getElementById("fullName");
+        if (fullNameInput) {
+          fullNameInput.focus();
+          fullNameInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 150);
+    });
+
+    async function handleHitlDecisionSubmit(threadId, action) {
+      const status = document.getElementById("status");
+      status.className = "status-message working";
+      status.innerHTML = `<div class="spinner"></div> Processing optimization decision...`;
+
+      try {
+        const response = await post("/hitl/decision", {
+          thread_id: threadId,
+          action: action
+        });
+
+        latest = response;
+        renderDraft(latest);
+
+        let newScoreVal = latest.ats_score;
+        let newScorePct = 0;
+        if (newScoreVal !== undefined && newScoreVal !== null) {
+          newScorePct = newScoreVal <= 1.0 ? Math.round(newScoreVal * 100) : Math.round(newScoreVal);
+        }
+        setAtsScore(newScorePct);
+
+        status.className = "status-message success";
+        if (action === "optimize") {
+          status.textContent = "Resume optimized successfully!";
+        } else if (action === "keep_original") {
+          status.textContent = "Original resume loaded successfully.";
+        } else if (action === "switch_to_scratch") {
+          status.textContent = "Guided intake form opened. Please provide structured details.";
+        }
+      } catch (err) {
+        handleBackendError(err);
+      }
     }
 
     function renderJobCards(jobTargets, resumeId, profileId, email) {
@@ -978,12 +1413,33 @@
 
           try {
             const recipientAddr = "recruiter@" + company.toLowerCase().replace(/[^a-z0-9]/g, "") + ".com";
-            latest = await post("/workflow/manual-optimize-draft", {
+            const payload = {
               resume_version_id: resumeId,
               job_target_id: job.job_id,
               candidate_preference_id: profileId,
-              recipient_email: recipientAddr
-            });
+              recipient_email: recipientAddr,
+              intake_mode: currentMode
+            };
+            if (currentMode === "build_from_scratch") {
+              payload.structured_intake = getStructuredIntakePayload();
+            }
+            latest = await post("/workflow/manual-optimize-draft", payload);
+
+            if (latest.needs_optimization_approval === true || latest.workflow_status === "interrupted" || latest.status === "PAUSED_FOR_HUMAN_OPTIMIZATION_APPROVAL" || latest.optimization_recommended === true) {
+              let scoreVal = latest.ats_score !== undefined ? latest.ats_score : latest.score;
+              let scorePct = 0;
+              if (scoreVal !== undefined && scoreVal !== null) {
+                scorePct = scoreVal <= 1.0 ? Math.round(scoreVal * 100) : Math.round(scoreVal);
+              }
+              let interruptType = "low_ats_optimization_prompt";
+              if (latest.recommendation === "switch_to_scratch_build" || latest.recommendation === "switch_to_scratch") {
+                interruptType = "insufficient_data_warning";
+              }
+              showHitlDecisionModal(scorePct, latest.session_id, interruptType);
+              status.className = "status-message info";
+              status.textContent = "Low ATS match score detected. Waiting for optimization decision...";
+              return;
+            }
 
             // 1. Fetch exact ATS score via POST /resume/calculate-ats
             try {
@@ -1029,8 +1485,7 @@
             status.className = "status-message success";
             status.textContent = `Draft ready for ${title} at ${company}!`;
           } catch (err) {
-            status.className = "status-message error";
-            status.textContent = "Error during optimization: " + err.message;
+            handleBackendError(err);
           }
         });
 
@@ -1038,6 +1493,369 @@
       });
 
       document.getElementById("discoveredJobsSection").hidden = false;
+    }
+
+    // Accordion Toggle Helper
+    window.toggleAccordion = function(header) {
+      const body = header.nextElementSibling;
+      const icon = header.querySelector(".accordion-icon");
+      if (body.style.display === "none" || body.style.display === "") {
+        body.style.display = "block";
+        icon.textContent = "▼";
+      } else {
+        body.style.display = "none";
+        icon.textContent = "▶";
+      }
+    };
+
+    // Mode toggling click listeners
+    const btnUpload = document.getElementById("toggle-upload-mode");
+    const btnScratch = document.getElementById("toggle-scratch-mode");
+    const uploadFields = document.getElementById("upload-mode-fields");
+    const scratchFields = document.getElementById("scratch-mode-fields");
+
+    btnUpload.addEventListener("click", () => {
+      currentMode = "upload";
+      btnUpload.classList.add("active");
+      btnUpload.style.background = "var(--accent)";
+      btnUpload.style.color = "white";
+      btnScratch.classList.remove("active");
+      btnScratch.style.background = "transparent";
+      btnScratch.style.color = "var(--text-muted)";
+      btnScratch.style.borderColor = "transparent";
+      
+      uploadFields.style.display = "block";
+      scratchFields.style.display = "none";
+    });
+
+    btnScratch.addEventListener("click", () => {
+      currentMode = "build_from_scratch";
+      btnScratch.classList.add("active");
+      btnScratch.style.background = "var(--accent)";
+      btnScratch.style.color = "white";
+      btnUpload.classList.remove("active");
+      btnUpload.style.background = "transparent";
+      btnUpload.style.color = "var(--text-muted)";
+      btnUpload.style.borderColor = "transparent";
+      
+      scratchFields.style.display = "block";
+      uploadFields.style.display = "none";
+    });
+
+    // Dynamic lists builders
+    window.addEducationEntry = function(inst = "", deg = "", spec = "", year = "", cgpa = "") {
+      const container = document.getElementById("education-entries");
+      const entry = document.createElement("div");
+      entry.className = "dynamic-entry card";
+      entry.style = "border: 1px solid rgba(255,255,255,0.06); padding: 14px; border-radius: 8px; margin-bottom: 12px; position: relative; background: rgba(0,0,0,0.1);";
+      entry.innerHTML = `
+        <button type="button" onclick="this.parentElement.remove()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--error); font-size: 16px; cursor: pointer;">&times;</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Institution</label>
+            <input type="text" class="edu-inst" value="${inst}" placeholder="e.g. Stanford University" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Degree</label>
+            <input type="text" class="edu-deg" value="${deg}" placeholder="e.g. Bachelor of Science" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Specialization</label>
+            <input type="text" class="edu-spec" value="${spec}" placeholder="e.g. Computer Science">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Graduation Year</label>
+            <input type="text" class="edu-year" value="${year}" placeholder="e.g. 2024">
+          </div>
+          <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+            <label>CGPA / Percentage</label>
+            <input type="text" class="edu-cgpa" value="${cgpa}" placeholder="e.g. 3.8/4.0 or 85%">
+          </div>
+        </div>
+      `;
+      container.appendChild(entry);
+    };
+
+    window.addExperienceEntry = function(company = "", role = "", duration = "", desc = "", tech = "") {
+      const container = document.getElementById("experience-entries");
+      const entry = document.createElement("div");
+      entry.className = "dynamic-entry card";
+      entry.style = "border: 1px solid rgba(255,255,255,0.06); padding: 14px; border-radius: 8px; margin-bottom: 12px; position: relative; background: rgba(0,0,0,0.1);";
+      entry.innerHTML = `
+        <button type="button" onclick="this.parentElement.remove()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--error); font-size: 16px; cursor: pointer;">&times;</button>
+        <div class="form-group">
+          <label>Company</label>
+          <input type="text" class="exp-company" value="${company}" placeholder="e.g. Google" required>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <input type="text" class="exp-role" value="${role}" placeholder="e.g. Software Engineer" required>
+        </div>
+        <div class="form-group">
+          <label>Duration / Dates</label>
+          <input type="text" class="exp-duration" value="${duration}" placeholder="e.g. June 2022 - Present" required>
+        </div>
+        <div class="form-group">
+          <label>Responsibilities & Achievements</label>
+          <textarea class="exp-desc" placeholder="Describe achievements, bullet points..." style="height: 80px;" required>${desc}</textarea>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>Technologies Used (comma separated)</label>
+          <input type="text" class="exp-tech" value="${tech}" placeholder="e.g. Python, Docker, Go">
+        </div>
+      `;
+      container.appendChild(entry);
+    };
+
+    window.addProjectEntry = function(title = "", tech = "", desc = "", impact = "", demo = "") {
+      const container = document.getElementById("project-entries");
+      const entry = document.createElement("div");
+      entry.className = "dynamic-entry card";
+      entry.style = "border: 1px solid rgba(255,255,255,0.06); padding: 14px; border-radius: 8px; margin-bottom: 12px; position: relative; background: rgba(0,0,0,0.1);";
+      entry.innerHTML = `
+        <button type="button" onclick="this.parentElement.remove()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--error); font-size: 16px; cursor: pointer;">&times;</button>
+        <div class="form-group">
+          <label>Project Title</label>
+          <input type="text" class="proj-title" value="${title}" placeholder="e.g. E-Commerce Platform" required>
+        </div>
+        <div class="form-group">
+          <label>Technologies Used (comma separated)</label>
+          <input type="text" class="proj-tech" value="${tech}" placeholder="e.g. React, Node.js, MongoDB">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea class="proj-desc" placeholder="Brief project description..." style="height: 60px;" required>${desc}</textarea>
+        </div>
+        <div class="form-group">
+          <label>Contribution & Impact</label>
+          <input type="text" class="proj-impact" value="${impact}" placeholder="e.g. Improved page load speed by 40% using SSR.">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label>Demo Link / Repository URL</label>
+          <input type="text" class="proj-demo" value="${demo}" placeholder="e.g. https://github.com/my-project">
+        </div>
+      `;
+      container.appendChild(entry);
+    };
+
+    window.addCertificationEntry = function(name = "", issuer = "", date = "", link = "") {
+      const container = document.getElementById("certification-entries");
+      const entry = document.createElement("div");
+      entry.className = "dynamic-entry card";
+      entry.style = "border: 1px solid rgba(255,255,255,0.06); padding: 14px; border-radius: 8px; margin-bottom: 12px; position: relative; background: rgba(0,0,0,0.1);";
+      entry.innerHTML = `
+        <button type="button" onclick="this.parentElement.remove()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--error); font-size: 16px; cursor: pointer;">&times;</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Name</label>
+            <input type="text" class="cert-name" value="${name}" placeholder="e.g. AWS Solutions Architect" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Issuer</label>
+            <input type="text" class="cert-issuer" value="${issuer}" placeholder="e.g. Amazon Web Services" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Date</label>
+            <input type="text" class="cert-date" value="${date}" placeholder="e.g. 2024">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Credential Link</label>
+            <input type="text" class="cert-link" value="${link}" placeholder="e.g. https://credentials.com/aws-123">
+          </div>
+        </div>
+      `;
+      container.appendChild(entry);
+    };
+
+    window.addAchievementEntry = function(text = "") {
+      const container = document.getElementById("achievement-entries");
+      const entry = document.createElement("div");
+      entry.className = "dynamic-entry card";
+      entry.style = "display: flex; gap: 10px; align-items: center; margin-bottom: 8px;";
+      entry.innerHTML = `
+        <input type="text" class="ach-text" value="${text}" placeholder="e.g. Secured 1st place in Mega Hackathon 2025" style="flex-grow: 1;" required>
+        <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--error); font-size: 20px; cursor: pointer;">&times;</button>
+      `;
+      container.appendChild(entry);
+    };
+
+    // Prepopulate default form entries for beautiful onboarding
+    addEducationEntry("Stanford University", "Bachelor of Science", "Computer Science", "2024", "3.9/4.0");
+    addExperienceEntry("Tech Corp", "Software Engineer Intern", "Summer 2023", "Developed backend REST APIs and optimized query database retrieval times.", "Python, Django, PostgreSQL");
+    addProjectEntry("Stratum Job Agent", "Python, React, FastAPI", "AI-powered job discovery and matching system.", "Reduced application drafting time by 60%.", "https://github.com/stratum/agent");
+    addCertificationEntry("AWS Certified Developer", "Amazon Web Services", "2023", "https://aws.credential");
+    addAchievementEntry("Top 5% in LeetCode Global Rank Contest");
+
+    function getStructuredIntakePayload() {
+      const education = [];
+      document.querySelectorAll("#education-entries .dynamic-entry").forEach(el => {
+        education.push({
+          institution: el.querySelector(".edu-inst").value,
+          degree: el.querySelector(".edu-deg").value,
+          specialization: el.querySelector(".edu-spec").value,
+          graduation_year: el.querySelector(".edu-year").value,
+          cgpa_percentage: el.querySelector(".edu-cgpa").value
+        });
+      });
+
+      const technical_skills = {
+        programming_languages: document.getElementById("scratch-skills-languages").value,
+        frameworks: document.getElementById("scratch-skills-frameworks").value,
+        databases: document.getElementById("scratch-skills-databases").value,
+        cloud_tools: document.getElementById("scratch-skills-cloud").value,
+        other_tools: document.getElementById("scratch-skills-other").value
+      };
+
+      const work_experience = [];
+      document.querySelectorAll("#experience-entries .dynamic-entry").forEach(el => {
+        work_experience.push({
+          company: el.querySelector(".exp-company").value,
+          role: el.querySelector(".exp-role").value,
+          duration: el.querySelector(".exp-duration").value,
+          responsibilities_achievements: el.querySelector(".exp-desc").value,
+          tech_used: el.querySelector(".exp-tech").value.split(",").map(t => t.trim()).filter(Boolean)
+        });
+      });
+
+      const projects = [];
+      document.querySelectorAll("#project-entries .dynamic-entry").forEach(el => {
+        projects.push({
+          title: el.querySelector(".proj-title").value,
+          tech_used: el.querySelector(".proj-tech").value.split(",").map(t => t.trim()).filter(Boolean),
+          description: el.querySelector(".proj-desc").value,
+          contribution_impact: el.querySelector(".proj-impact").value,
+          demo_link: el.querySelector(".proj-demo").value
+        });
+      });
+
+      const certifications = [];
+      document.querySelectorAll("#certification-entries .dynamic-entry").forEach(el => {
+        certifications.push({
+          name: el.querySelector(".cert-name").value,
+          issuer: el.querySelector(".cert-issuer").value,
+          date: el.querySelector(".cert-date").value,
+          credential_link: el.querySelector(".cert-link").value
+        });
+      });
+
+      const achievements = [];
+      document.querySelectorAll("#achievement-entries .dynamic-entry").forEach(el => {
+        achievements.push(el.querySelector(".ach-text").value);
+      });
+
+      return {
+        full_name: document.getElementById("fullName").value,
+        contact_info: {
+          phone: document.getElementById("scratch-phone").value,
+          location: document.getElementById("scratch-location").value,
+          linkedin: document.getElementById("scratch-linkedin").value,
+          github_portfolio: document.getElementById("scratch-github").value,
+          email: document.getElementById("email").value,
+          target_role: document.getElementById("targetRole").value,
+          preferred_locations: document.getElementById("preferredLocations").value.split(",").map(item => item.trim()).filter(Boolean),
+          work_mode: document.getElementById("workMode").value,
+          template_id: document.getElementById("templateId").value
+        },
+        professional_summary: document.getElementById("scratch-summary").value,
+        education: education,
+        technical_skills: technical_skills,
+        work_experience: work_experience,
+        projects: projects,
+        certifications: certifications,
+        achievements: achievements
+      };
+    }
+
+    function generateRawTextFromStructured(payload) {
+      let lines = [];
+      lines.push(payload.full_name);
+      
+      let contactParts = [
+        payload.contact_info.email,
+        payload.contact_info.phone,
+        payload.contact_info.location
+      ].filter(Boolean);
+      if (contactParts.length > 0) lines.push(contactParts.join(" | "));
+      
+      let links = [
+        payload.contact_info.linkedin,
+        payload.contact_info.github_portfolio
+      ].filter(Boolean);
+      if (links.length > 0) lines.push(links.join(" | "));
+      
+      lines.push("\n---");
+      
+      if (payload.professional_summary) {
+        lines.push("SUMMARY");
+        lines.push(payload.professional_summary);
+        lines.push("");
+      }
+      
+      const skills = [];
+      for (let k in payload.technical_skills) {
+        let val = payload.technical_skills[k];
+        if (val) skills.push(val);
+      }
+      if (skills.length > 0) {
+        lines.push("SKILLS");
+        lines.push(skills.join(", "));
+        lines.push("");
+      }
+      
+      if (payload.education.length > 0) {
+        lines.push("EDUCATION");
+        payload.education.forEach(edu => {
+          let spec = edu.specialization ? ` in ${edu.specialization}` : "";
+          lines.push(`${edu.degree}${spec} - ${edu.institution} (${edu.graduation_year})`);
+          if (edu.cgpa_percentage) lines.push(`CGPA/Percentage: ${edu.cgpa_percentage}`);
+        });
+        lines.push("");
+      }
+      
+      if (payload.work_experience.length > 0) {
+        lines.push("EXPERIENCE");
+        payload.work_experience.forEach(exp => {
+          lines.push(`${exp.role} at ${exp.company} (${exp.duration})`);
+          lines.push(exp.responsibilities_achievements);
+          if (exp.tech_used && exp.tech_used.length > 0) {
+            lines.push(`Technologies: ${exp.tech_used.join(", ")}`);
+          }
+        });
+        lines.push("");
+      }
+      
+      if (payload.projects.length > 0) {
+        lines.push("PROJECTS");
+        payload.projects.forEach(prj => {
+          lines.push(prj.title);
+          lines.push(prj.description);
+          if (prj.contribution_impact) lines.push(`Impact: ${prj.contribution_impact}`);
+          if (prj.tech_used && prj.tech_used.length > 0) {
+            lines.push(`Technologies: ${prj.tech_used.join(", ")}`);
+          }
+          if (prj.demo_link) lines.push(`Demo: ${prj.demo_link}`);
+        });
+        lines.push("");
+      }
+      
+      if (payload.certifications.length > 0) {
+        lines.push("CERTIFICATIONS");
+        payload.certifications.forEach(cert => {
+          lines.push(`${cert.name} by ${cert.issuer} (${cert.date})`);
+          if (cert.credential_link) lines.push(`Link: ${cert.credential_link}`);
+        });
+        lines.push("");
+      }
+      
+      if (payload.achievements.length > 0) {
+        lines.push("ACHIEVEMENTS");
+        payload.achievements.forEach(ach => {
+          lines.push(ach);
+        });
+        lines.push("");
+      }
+      
+      return lines.join("\n").trim();
     }
 
     document.getElementById("workflow-form").addEventListener("submit", async (event) => {
@@ -1078,51 +1896,60 @@
           metadata: {}
         });
 
-        // 2. Parse and upload Resume File or Auto-generate baseline resume
-        const fileInput = document.getElementById("resumeFile");
+        // 2. Parse and upload Resume File or Auto-generate/structured baseline resume
         let resume;
-
-        if (fileInput.files && fileInput.files.length > 0) {
-          const file = fileInput.files[0];
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("user_email", email);
-          formData.append("full_name", fullName);
-          formData.append("version_label", "dashboard");
-          formData.append("template_id", templateId);
-
-          status.innerHTML = `<div class="spinner"></div> Uploading resume, searching jobs via ${source.replace('_', ' ')}...`;
-          const resumeResponse = await fetch(api + "/resume/upload-file?source=" + source, {
-            method: "POST",
-            body: formData
-          });
-          if (!resumeResponse.ok) {
-            let errMsg = "Failed to parse and upload resume file.";
-            try {
-              const errData = await resumeResponse.json();
-              errMsg = errData.detail?.message || errData.detail || errMsg;
-            } catch (_) {
-              try {
-                errMsg = await resumeResponse.text();
-              } catch (_) {}
-            }
-            throw new Error(errMsg);
-          }
-          resume = await resumeResponse.json();
-        } else {
-          status.innerHTML = `<div class="spinner"></div> Auto-generating baseline resume & searching jobs via ${source.replace('_', ' ')}...`;
-          const skillsList = document.getElementById("skills").value;
-          const targetRoleVal = document.getElementById("targetRole").value;
-          const baselineText = `Resume of ${fullName}\n\nObjective: Seeking a challenging role as a ${targetRoleVal} where I can utilize my skills.\n\nSkills:\n${skillsList}\n\nProfessional Experience:\n- Freelance Developer / Independent projects matching target skills.`;
+        if (currentMode === "build_from_scratch") {
+          status.innerHTML = `<div class="spinner"></div> 🔍 Searching live job boards via Tavily...`;
+          const structuredPayload = getStructuredIntakePayload();
+          const baselineText = generateRawTextFromStructured(structuredPayload);
 
           resume = await post("/resume/upload?source=" + source, {
             user_email: email,
             full_name: fullName,
             resume_text: baselineText,
-            version_label: "auto-generated",
+            version_label: "scratch-generated",
             template_id: templateId,
-            metadata: {"auto_generated": true}
+            metadata: {
+              "intake_mode": "build_from_scratch",
+              "structured_intake": structuredPayload
+            }
           });
+        } else {
+          const fileInput = document.getElementById("resumeFile");
+          if (fileInput.files && fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("user_email", email);
+            formData.append("full_name", fullName);
+            formData.append("version_label", "dashboard");
+            formData.append("template_id", templateId);
+
+            status.innerHTML = `<div class="spinner"></div> 🔍 Searching live job boards via Tavily...`;
+            try {
+              resume = await fetchWithTimeoutAndRetry(api + "/resume/upload-file?source=" + source, {
+                method: "POST",
+                body: formData
+              });
+            } catch (err) {
+              let errMsg = err.message || "Failed to parse and upload resume file.";
+              throw new Error(errMsg);
+            }
+          } else {
+            status.innerHTML = `<div class="spinner"></div> 🔍 Searching live job boards via Tavily...`;
+            const skillsList = document.getElementById("skills").value;
+            const targetRoleVal = document.getElementById("targetRole").value;
+            const baselineText = `Resume of ${fullName}\n\nObjective: Seeking a challenging role as a ${targetRoleVal} where I can utilize my skills.\n\nSkills:\n${skillsList}\n\nProfessional Experience:\n- Freelance Developer / Independent projects matching target skills.`;
+
+            resume = await post("/resume/upload?source=" + source, {
+              user_email: email,
+              full_name: fullName,
+              resume_text: baselineText,
+              version_label: "auto-generated",
+              template_id: templateId,
+              metadata: {"auto_generated": true}
+            });
+          }
         }
 
         renderJobCards(resume.job_targets, resume.resume_version_id, profile.candidate_preference_id, email);
@@ -1130,8 +1957,7 @@
         status.className = "status-message success";
         status.textContent = `Discovered ${resume.job_targets ? resume.job_targets.length : 0} target jobs matching your profile!`;
       } catch (error) {
-        status.className = "status-message error";
-        status.textContent = "Error: " + error.message;
+        handleBackendError(error);
         updateStep('intake');
       } finally {
         submitBtn.disabled = false;
@@ -1148,12 +1974,59 @@
       document.getElementById("emailSubject").value = result.email_draft?.subject || "";
       document.getElementById("emailBody").value = result.email_draft?.body || "";
 
+      let scoreVal = null;
+      if (result.ats_score !== undefined && result.ats_score !== null) {
+        scoreVal = result.ats_score;
+      } else if (result.ats_details && result.ats_details.ats_score !== undefined) {
+        scoreVal = result.ats_details.ats_score;
+      }
+      
+      let scorePct = 0;
+      if (scoreVal !== null) {
+        scorePct = scoreVal <= 1.0 ? Math.round(scoreVal * 100) : Math.round(scoreVal);
+      }
+
+      const showWarning = (scoreVal !== null && scorePct < 80) && (result.status === "PAUSED_FOR_HUMAN_OPTIMIZATION_APPROVAL");
+      const warningCard = document.getElementById("atsWarningCard");
+      const actionsBar = document.querySelector(".actions-bar");
+
+      if (showWarning) {
+        document.getElementById("atsWarningBadge").textContent = `⚠️ ATS Match Score Low (${scorePct}%)`;
+        warningCard.style.display = "block";
+        if (actionsBar) actionsBar.style.display = "none";
+      } else {
+        warningCard.style.display = "none";
+        if (actionsBar) actionsBar.style.display = "flex";
+      }
+
+      // Check if user has opted out of optimization
+      const optedOut = result.approve_optimization === false || (result.state_json && result.state_json.approve_optimization === false);
+      const badge = document.getElementById("unoptimizedBadge");
+      const textarea = document.getElementById("optimizedResume");
+      
+      if (optedOut) {
+        badge.style.display = "inline-flex";
+        textarea.readOnly = true;
+        textarea.style.opacity = "0.7";
+      } else {
+        badge.style.display = "none";
+        textarea.readOnly = false;
+        textarea.style.opacity = "1";
+      }
+
       if (result.resume_version_id) {
-        const downloadUrl = api + "/resume/download/" + result.resume_version_id;
+        let downloadUrl = api + "/resume/download/" + result.resume_version_id;
+        let linkLabel = "📥 Download DOCX";
+        
+        if (optedOut) {
+          downloadUrl = api + "/resume/download/" + (result.user_id || 1) + "/" + result.resume_version_id;
+          linkLabel = "📥 Download Original File";
+        }
+        
         const link = document.getElementById("downloadResumeLink");
         link.href = downloadUrl;
         link.style.display = "inline-block";
-        link.textContent = "📥 Download DOCX";
+        link.textContent = linkLabel;
       } else {
         document.getElementById("downloadResumeLink").style.display = "none";
       }
@@ -1228,6 +2101,16 @@
         status.className = "status-message error";
         status.textContent = "Outreach failed: " + error.message;
       }
+    });
+
+    document.getElementById("btnAutoOptimize").addEventListener("click", async () => {
+      if (!latest) return;
+      await handleHitlDecisionSubmit(latest.session_id, "optimize");
+    });
+
+    document.getElementById("btnProceedAsIs").addEventListener("click", async () => {
+      if (!latest) return;
+      await handleHitlDecisionSubmit(latest.session_id, "keep_original");
     });
   </script>
 </body>

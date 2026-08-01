@@ -45,7 +45,7 @@ async def test_job_discovery_node_forwards_preferences() -> None:
         result = await job_discovery_node(state)
         mock_discover.assert_called_once_with(
             query="Backend Engineer jobs FastAPI",
-            max_results=10,
+            max_results=6,
             preferred_locations=["Mumbai", "Remote"],
             work_mode="Hybrid"
         )

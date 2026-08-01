@@ -31,6 +31,8 @@ class ManualOptimizeDraftRequest(BaseModel):
     recipient_email: str | None = Field(default=None, min_length=3)
     candidate_preference_id: int | None = Field(default=None, ge=1)
     skills_to_highlight: list[str] = Field(default_factory=list)
+    intake_mode: str = Field(default="upload")
+    structured_intake: dict[str, Any] = Field(default_factory=dict)
 
 
 @router.get("/ollama/status")
@@ -47,6 +49,7 @@ async def manual_optimize_and_draft(
 ) -> dict[str, Any]:
     """Run resume optimization and email drafting for a manually chosen job."""
 
+    session_id = str(uuid4())
     resume_version = db.get(ResumeVersion, payload.resume_version_id)
     job_target = db.get(JobTarget, payload.job_target_id)
     if resume_version is None:
@@ -95,6 +98,25 @@ async def manual_optimize_and_draft(
             metadata={"routing": {"model_tier": "large", "model_name": "huggingface", "reason": "No baseline resume upload"}},
         )
     else:
+        from src.schemas.resume import validate_resume_info_density
+        from src.utils.docx_compiler import DocxCompiler
+        
+        parsed_dict = DocxCompiler().parse_resume_text_to_dict(resume_version.raw_text)
+        has_sufficient_info, missing_fields = validate_resume_info_density(parsed_dict)
+        
+        uploaded_ats = await ats_engine.combined_score(resume_version.raw_text, job_target.job_description)
+        uploaded_ats_score = uploaded_ats.score
+        if uploaded_ats_score <= 1.0:
+            uploaded_ats_score *= 100.0
+            
+        if uploaded_ats_score < 80 and not has_sufficient_info:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The uploaded resume has an ATS score below 80% and has insufficient information. "
+                       "Optimization is not allowed to prevent generating fake/default information. "
+                       "Please use the 'build resume from scratch' option.",
+            )
+
         optimization = await optimizer.optimize_resume(
             resume_text=resume_version.raw_text,
             job_description=job_target.job_description,
@@ -132,9 +154,9 @@ async def manual_optimize_and_draft(
         ],
     )
 
-    pdf_dir = Path("storage_workspace/final_documents") / f"user_{resume_version.user_id}"
-    pdf_dir.mkdir(parents=True, exist_ok=True)
-    docx_path = pdf_dir / f"resume_v{resume_version.id}.docx"
+    storage_dir = Path("storage_workspace/final_documents") / f"user_{resume_version.user_id}"
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    docx_path = Path("final_documents") / f"user_{resume_version.user_id}" / f"resume_v{resume_version.id}.docx"
 
     optimized_resume_json = None
     try:
@@ -188,13 +210,21 @@ async def manual_optimize_and_draft(
     )
     db.add(generated_document)
     
-    session_id = str(uuid4())
+    ats_score_val = ats_score.score
+    if ats_score_val <= 1.0:
+        ats_score_percent = ats_score_val * 100.0
+    else:
+        ats_score_percent = ats_score_val
+
+    is_low_ats = False if payload.intake_mode == "build_from_scratch" else (ats_score_percent < 80)
+    status_str = "PAUSED_FOR_HUMAN_OPTIMIZATION_APPROVAL" if is_low_ats else "draft_ready_for_human_review"
+
     workflow_session = WorkflowSession(
         id=session_id,
         user_id=resume_version.user_id,
         resume_version_id=resume_version.id,
         job_target_id=job_target.id,
-        status="draft_ready_for_human_review",
+        status=status_str,
         state_json={
             "optimized_resume": optimization.optimized_resume,
             "email_draft": asdict(email_payload),
@@ -202,13 +232,16 @@ async def manual_optimize_and_draft(
             "candidate_preference_id": preference.id if preference else None,
             "skills_to_highlight": selected_skills,
             "generated_document_path": str(attached_path),
+            "optimization_recommended": is_low_ats,
+            "intake_mode": payload.intake_mode,
+            "structured_intake": payload.structured_intake,
         },
     )
     db.add(workflow_session)
     db.commit()
 
     return {
-        "status": "draft_ready_for_human_review",
+        "status": status_str,
         "session_id": session_id,
         "resume_version_id": resume_version.id,
         "job_target_id": job_target.id,

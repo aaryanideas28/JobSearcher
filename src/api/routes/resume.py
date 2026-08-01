@@ -61,7 +61,7 @@ async def _discover_and_persist_jobs(user_id: int, db: Session, source: str = "t
     agent = JobDiscoveryAgent()
     postings = await agent.discover(
         query=query,
-        max_results=10,
+        max_results=6,
         source=source,
         preferred_locations=preferred_locations,
         work_mode=work_mode,
@@ -175,6 +175,11 @@ async def upload_resume_file(
         db.add(user)
         db.flush()
 
+    # Maintain original uploaded file reference
+    original_file_name = f"user_{user.id}_original{suffix}"
+    original_file_path = UPLOAD_DIR / original_file_name
+    original_file_path.write_bytes(stored_path.read_bytes())
+
     resume_version = ResumeVersion(
         user_id=user.id,
         version_label=version_label,
@@ -184,6 +189,7 @@ async def upload_resume_file(
             "source": "file_upload",
             "original_filename": original_name,
             "stored_path": str(stored_path),
+            "original_file_path": str(original_file_path),
             "parser": parsed.parser,
             "warnings": parsed.warnings,
         },
@@ -237,13 +243,72 @@ async def rollback_resume(
     }
 
 
-@router.get("/download/{version_id}")
-async def download_resume_file(
-    version_id: int,
-    db: Session = Depends(get_db),
-) -> FileResponse:
-    """Download the compiled DOCX resume document for a version."""
-    from src.database.models import GeneratedDocument
+def get_download_file_response(user_id: int | None, version_id: int, db: Session) -> FileResponse:
+    from src.database.models import GeneratedDocument, WorkflowSession
+    
+    # 1. Fetch resume version to check metadata
+    resume_version = db.get(ResumeVersion, version_id)
+    if not resume_version:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume version not found.",
+        )
+        
+    resolved_user_id = user_id or resume_version.user_id
+    
+    # 2. Check if optimization was approved
+    approve_optimization = True
+    
+    # Check session state
+    session = (
+        db.query(WorkflowSession)
+        .filter(
+            WorkflowSession.user_id == resolved_user_id,
+            WorkflowSession.resume_version_id == version_id
+        )
+        .order_by(WorkflowSession.created_at.desc())
+        .first()
+    )
+    if session and session.state_json:
+        if session.state_json.get("approve_optimization") == False:
+            approve_optimization = False
+            
+    # Check metadata
+    if resume_version.metadata_json and resume_version.metadata_json.get("approve_optimization") == False:
+        approve_optimization = False
+        
+    if not approve_optimization:
+        # Point directly to the original file path
+        import glob
+        files = glob.glob(f"storage_workspace/uploads/user_{resolved_user_id}_original.*")
+        if not files and resume_version.metadata_json:
+            stored_path = resume_version.metadata_json.get("stored_path")
+            if stored_path:
+                files = [stored_path]
+                
+        if files:
+            original_path = Path(files[0])
+            if original_path.exists():
+                suffix = original_path.suffix.lower()
+                media_type = "application/octet-stream"
+                if suffix == ".pdf":
+                    media_type = "application/pdf"
+                elif suffix == ".docx":
+                    media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                elif suffix in (".txt", ".md"):
+                    media_type = "text/plain"
+                    
+                return FileResponse(
+                    path=original_path,
+                    media_type=media_type,
+                    filename=original_path.name
+                )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Original uploaded file not found.",
+        )
+        
+    # Else serve the compiled DOCX
     doc = db.query(GeneratedDocument).filter(
         GeneratedDocument.resume_version_id == version_id,
         GeneratedDocument.document_type == "optimized_resume_docx",
@@ -267,6 +332,25 @@ async def download_resume_file(
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename=path.name,
     )
+
+
+@router.get("/download/{version_id}")
+async def download_resume_file(
+    version_id: int,
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    """Download the compiled DOCX resume document for a version."""
+    return get_download_file_response(None, version_id, db)
+
+
+@router.get("/download/{user_id}/{version_id}")
+async def download_resume_file_by_user_and_version(
+    user_id: int,
+    version_id: int,
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    """Download the original uploaded resume file by user and version."""
+    return get_download_file_response(user_id, version_id, db)
 
 
 class CalculateATSRequest(BaseModel):

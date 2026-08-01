@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Set
 from src.agents.ats_engine import ATSEngine
 from src.agents.router import RoutingDecision, TaskComplexityRouter
 from src.clients.ollama import OllamaClient
+from src.schemas.resume import validate_resume_info_density
 
 
 @dataclass(slots=True)
@@ -324,8 +325,9 @@ class ResumeOptimizer:
             "   Languages: [max 3-4]\n"
             "   Tools: [max 3-4]\n"
             "   Libraries & Frameworks: [max 3-4]\n"
-            "4. STAR BULLETS WITH METRICS: Every project bullet MUST start with a bold Action Verb (e.g. **Engineered**, **Built**, **Implemented**, **Orchestrated**) and contain a numerical metric (e.g. **30% reduction**, **10+ postings**).\n"
-            "5. NO '###' or junk placeholders. Keep length under 3000 characters (1 page).\n\n"
+            "4. STAR BULLETS WITH METRICS & BOLDING: Every project bullet MUST start with a bold Action Verb (e.g. **Engineered**, **Built**, **Implemented**, **Orchestrated**) and contain a numerical metric. You MUST strictly wrap key metrics, percentages, rankings, and lead action verbs in double asterisks (`**`) for emphasis. E.g. '**Implemented** a QA system... reducing extraction time by **20%**.', '**96% Accuracy**', '**AIR 129**', '**2k+ views**'.\n"
+            "5. STRICT ANTI-HALLUCINATION POLICY: NEVER generate synthetic placeholder companies, fake universities (such as 'Stanford University' or other defaults), default/fabricated dates, or fake/fabricated achievements if candidate data is missing or sparse. Stick strictly to candidate facts.\n"
+            "6. NO '###' or junk placeholders. Keep length under 3000 characters (1 page).\n\n"
             f"Target Role: {role}\n"
             f"Skills: {skills}\n"
             f"Missing Keywords: {missing}\n\n"
