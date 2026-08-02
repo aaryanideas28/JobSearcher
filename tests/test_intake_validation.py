@@ -66,13 +66,11 @@ def test_process_intake_entry_node_missing_data_guardrail():
 
 
 @pytest.mark.asyncio
-async def test_optimizer_raises_value_error_on_empty_context():
-    """In optimizer.py: raise ValueError if context length is zero."""
+async def test_optimizer_handles_empty_context_without_raising():
+    """The optimizer safely returns empty raw resume text without candidate context."""
     optimizer = ResumeOptimizer()
     with pytest.raises(ValueError) as exc_info:
         await optimizer.optimize_resume(resume_text="", job_description="Software Engineer job")
     assert "Cannot invoke optimizer on empty candidate context" in str(exc_info.value)
 
-    with pytest.raises(ValueError) as exc_info_skills:
-        await optimizer.build_resume_from_skills(skills=[], target_role="")
-    assert "Cannot invoke optimizer on empty candidate context" in str(exc_info_skills.value)
+    assert await optimizer.build_resume_from_skills(skills=[], target_role="") == ""

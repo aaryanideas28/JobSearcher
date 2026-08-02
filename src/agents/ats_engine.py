@@ -41,6 +41,14 @@ STOP_WORDS: Set[str] = {
     "you", "youd", "youll", "youre", "youve", "your", "yours", "yourself", "yourselves"
 }
 
+JOB_FILLER_WORDS: Set[str] = {
+    "seeking", "looking", "responsibilities", "requirements", "experience",
+    "years", "candidate", "ability", "working", "strong", "team", "role",
+    "work", "skills", "knowledge", "environment", "equal", "opportunity",
+    "employment", "job", "description", "full", "time", "part", "location",
+    "preferred", "qualifications", "duty", "duties", "ideal", "successful"
+}
+
 
 def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
     """Compute cosine similarity between two float vectors."""
@@ -72,7 +80,7 @@ COMMON_TECHNICAL_SKILLS: Set[str] = {
     # Programming Languages
     "python", "javascript", "typescript", "golang", "go", "java", "c++", "c#", "rust", "ruby", "php", "swift", "kotlin", "scala", "r", "sql", "html", "css", "bash", "shell", "perl", "dart", "objective-c", "elixir", "haskell",
     # Frameworks & Libraries
-    "fastapi", "flask", "django", "spring", "spring boot", "react", "react native", "next.js", "nextjs", "vue", "vuejs", "angular", "express", "node.js", "nodejs", "rails", "laravel", "pytorch", "tensorflow", "keras", "scikit-learn", "numpy", "pandas", "sklearn", "jquery", "bootstrap", "tailwind", "hibernate", "prisma", "sequelize", "graphql", "grpc", "spring boot", "play framework", "net core", "asp.net", "symfony", "codeigniter",
+    "fastapi", "flask", "django", "spring", "spring boot", "react", "react native", "next.js", "nextjs", "vue", "vuejs", "angular", "express", "node.js", "nodejs", "rails", "laravel", "pytorch", "tensorflow", "keras", "scikit-learn", "numpy", "pandas", "sklearn", "jquery", "bootstrap", "tailwind", "hibernate", "prisma", "sequelize", "graphql", "grpc", "play framework", "net core", "asp.net", "symfony", "codeigniter",
     # Databases & Caching
     "postgresql", "postgres", "mysql", "mongodb", "sqlite", "redis", "elasticsearch", "cassandra", "mariadb", "dynamodb", "oracle", "neo4j", "firebase", "couchdb", "influxdb", "clickhouse", "memcached",
     # DevOps, Cloud & Systems
@@ -223,19 +231,22 @@ class ATSEngine:
 
         # 2. Base Matching Score (0 - 100 scale)
         if jd_skills:
-            coverage_score = len(matched_skills) / len(jd_skills)
+            raw_ratio = len(matched_skills) / len(jd_skills)
+            coverage_score = math.sqrt(raw_ratio)  # Non-linear soft matching
         else:
-            coverage_score = 0.8
+            coverage_score = 0.85
 
         jd_tokens = self._extract_keywords(job_description)
-        jd_role_tokens = jd_tokens - {s.lower() for s in jd_skills}
+        # Exclude skill tags and generic job posting filler words
+        jd_role_tokens = (jd_tokens - {s.lower() for s in jd_skills}) - JOB_FILLER_WORDS
 
         if jd_role_tokens:
             resume_tokens = self._extract_keywords(resume_text)
             matched_role_tokens = jd_role_tokens & resume_tokens
             density_score = len(matched_role_tokens) / len(jd_role_tokens)
+            density_score = min(1.0, density_score * 1.5)  # Scaled density balance
         else:
-            density_score = 0.8
+            density_score = 0.85
 
         base_score = (coverage_score * 65.0) + (density_score * 35.0)
 
@@ -247,11 +258,11 @@ class ATSEngine:
 
         total_penalties = impact_penalty + formatting_penalty + brevity_penalty + metric_penalty
 
-        # Calibrated Score calculation: benchmarked closer to Resume Worded range (~40%-65%)
+        # Calibrated Score calculation
         calibrated_score = int(round(base_score - total_penalties))
         calibrated_score = max(0, min(100, calibrated_score))
 
-        # 4. Generate 3-4 line Actionable Feedback
+        # 4. Actionable Feedback Generation
         feedback_lines = []
         if missing_skills:
             top_missing = [s.title() for s in sorted(list(missing_skills))[:4]]
@@ -480,19 +491,12 @@ class ATSEngine:
         return keywords
 
     def _extract_bullets(self, text: str) -> List[str]:
-        """Split text into distinct bullet points or requirement statements."""
-        lines = text.splitlines()
+        """Split text into distinct bullet points, requirement statements, or block lines."""
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
         bullet_lines = []
-        general_lines = []
         for line in lines:
-            line_str = line.strip()
-            if not line_str:
-                continue
-            # Lines starting with bullet markers (-, *, •, digit.)
-            if re.match(r"^[\s•\-\*\d\.\)]+", line):
-                cleaned = re.sub(r"^[\s•\-\*\d\.\)]+", "", line).strip()
-                if len(cleaned) > 10:
-                    bullet_lines.append(cleaned)
-            elif len(line_str) > 20 and not line_str.endswith(":") and not line_str.isupper():
-                general_lines.append(line_str)
-        return bullet_lines if bullet_lines else (general_lines if general_lines else [text.strip()])
+            cleaned = re.sub(r"^[\s•\-\*\d\.\)]+", "", line).strip()
+            # Recognize non-header lines or achievement statements as valid bullets
+            if len(cleaned) > 12 and not line.isupper() and not line.endswith(":"):
+                bullet_lines.append(cleaned)
+        return bullet_lines if bullet_lines else [text.strip()]

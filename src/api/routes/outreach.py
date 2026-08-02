@@ -3,12 +3,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
+from database.models import GeneratedDocument, ResumeVersion, WorkflowSession
+from src.api.dependencies import get_db
 from src.workflow.tasks import send_email_outreach_task
 
 router = APIRouter()
@@ -24,12 +28,59 @@ class OutreachDispatchRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+def _resolve_resume_attachment(payload: OutreachDispatchRequest, db: Session) -> str | None:
+    """Resolve a real resume file even when the frontend has no attachment list."""
+    for attachment in payload.attachments:
+        path = Path(str(attachment))
+        if path.is_file():
+            return str(path.resolve())
+
+    session_id = payload.metadata.get("session_id")
+    if session_id:
+        session = db.get(WorkflowSession, str(session_id))
+        session_state = session.state_json if session else {}
+        if isinstance(session_state, dict):
+            generated_path = session_state.get("generated_document_path")
+            if generated_path and Path(str(generated_path)).is_file():
+                return str(Path(str(generated_path)).resolve())
+
+    resume_version_id = payload.metadata.get("resume_version_id")
+    if not resume_version_id:
+        return None
+
+    generated = (
+        db.query(GeneratedDocument)
+        .filter(
+            GeneratedDocument.resume_version_id == resume_version_id,
+            GeneratedDocument.document_type == "optimized_resume_docx",
+        )
+        .order_by(GeneratedDocument.id.desc())
+        .first()
+    )
+    if generated and Path(generated.file_path).is_file():
+        return str(Path(generated.file_path).resolve())
+
+    resume_version = db.get(ResumeVersion, resume_version_id)
+    metadata = resume_version.metadata_json if resume_version else {}
+    if isinstance(metadata, dict):
+        for key in ("original_file_path", "stored_path"):
+            path = Path(str(metadata.get(key))) if metadata.get(key) else None
+            if path and path.is_file():
+                return str(path.resolve())
+    return None
+
+
 @router.post("/dispatch")
-def dispatch_outreach(payload: OutreachDispatchRequest) -> dict[str, Any]:
+def dispatch_outreach(
+    payload: OutreachDispatchRequest,
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
     """Queue or execute an outreach email dispatch."""
     from src.config.settings import get_settings
     settings = get_settings()
     email_payload = payload.model_dump()
+    attachment = _resolve_resume_attachment(payload, db)
+    email_payload["attachments"] = [attachment] if attachment else []
 
     if settings.celery_task_always_eager:
         result = send_email_outreach_task(email_payload)
@@ -37,6 +88,7 @@ def dispatch_outreach(payload: OutreachDispatchRequest) -> dict[str, Any]:
             "status": result.get("status", "executed"),
             "recipient_email": payload.recipient_email,
             "task_id": str(uuid4()),
+            "attachment": attachment,
             "result": result,
         }
 
@@ -44,13 +96,19 @@ def dispatch_outreach(payload: OutreachDispatchRequest) -> dict[str, Any]:
     if callable(delay):
         async_result = delay(email_payload)
         task_id = getattr(async_result, "id", str(uuid4()))
-        return {"status": "queued", "recipient_email": payload.recipient_email, "task_id": task_id}
+        return {
+            "status": "queued",
+            "recipient_email": payload.recipient_email,
+            "task_id": task_id,
+            "attachment": attachment,
+        }
 
     result = send_email_outreach_task(email_payload)
     return {
         "status": result.get("status", "executed"),
         "recipient_email": payload.recipient_email,
         "task_id": str(uuid4()),
+        "attachment": attachment,
         "result": result,
     }
 
@@ -68,7 +126,7 @@ class GenerateEmailRequest(BaseModel):
 @router.post("/generate-email")
 async def generate_email(payload: GenerateEmailRequest) -> dict[str, Any]:
     """Draft a personalized outreach email using OpenAI/LLM or OutreachAgent fallback."""
-    from src.agents.outreach import OutreachAgent
+    from src.agents.outreach import OutreachAgent, infer_recruiter_email
     from src.config.settings import get_settings
 
     settings = get_settings()
@@ -83,7 +141,7 @@ async def generate_email(payload: GenerateEmailRequest) -> dict[str, Any]:
 
     company = payload.company_name or profile.get("company") or "Hiring Team"
     clean_company = company.lower().replace(" ", "").replace(".", "")
-    recipient = payload.recipient_email or profile.get("recipient_email") or f"recruiter@{clean_company}.com"
+    recipient = payload.recipient_email or profile.get("recipient_email") or infer_recruiter_email(company)
     subject = f"Application for {target_role} - {full_name}"
 
     # Try OpenAI if OPENAI_API_KEY is configured

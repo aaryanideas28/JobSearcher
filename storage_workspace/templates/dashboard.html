@@ -1775,6 +1775,7 @@
     function handleBackendError(error, inlineStatusElementId = "status") {
       let errMsg = error.message || "";
       let cleanMsg = errMsg;
+      let detailPayload = null;
       
       try {
         const parsed = JSON.parse(errMsg);
@@ -1782,12 +1783,41 @@
           if (typeof parsed.detail === "string") {
             cleanMsg = parsed.detail;
           } else if (typeof parsed.detail === "object" && parsed.detail.message) {
+            detailPayload = parsed.detail;
             cleanMsg = parsed.detail.message;
           } else {
             cleanMsg = JSON.stringify(parsed.detail);
           }
         }
       } catch (e) {}
+
+      if (detailPayload && detailPayload.code === "CANDIDATE_DETAILS_REQUIRED") {
+        const fieldLabels = {
+          candidate_name: "Full Name",
+          core_skills: "Skills to Highlight",
+        };
+        const labels = (detailPayload.required_fields || [])
+          .map(field => fieldLabels[field] || field)
+          .join(" and ");
+        const status = document.getElementById(inlineStatusElementId);
+        if (status) {
+          status.className = "status-message error";
+          status.textContent = `Please enter ${labels} in Candidate Intake, then click Keep Original again.`;
+        }
+        (detailPayload.required_fields || []).forEach(field => {
+          const inputId = field === "candidate_name" ? "fullName" : field === "core_skills" ? "skills" : null;
+          const input = inputId ? document.getElementById(inputId) : null;
+          if (input) input.classList.add("input-invalid");
+        });
+        const firstField = detailPayload.required_fields?.[0];
+        const firstId = firstField === "candidate_name" ? "fullName" : firstField === "core_skills" ? "skills" : null;
+        const firstInput = firstId ? document.getElementById(firstId) : null;
+        if (firstInput) {
+          firstInput.focus();
+          firstInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
       
       if (cleanMsg.startsWith('{"detail":')) {
         try {
@@ -1848,7 +1878,10 @@
       try {
         const response = await post("/hitl/decision", {
           thread_id: threadId,
-          action: action
+          action: action,
+          candidate_name: document.getElementById("fullName")?.value.trim() || "",
+          email: document.getElementById("email")?.value.trim() || "",
+          core_skills: csv("skills")
         });
 
         latest = response;

@@ -48,9 +48,7 @@ The app can create SQLAlchemy tables during local development:
 ```powershell
 python -c "from database.connection import init_db; init_db()"
 ```
-
 The equivalent PostgreSQL DDL lives in `database/schema.sql`.
-
 http://localhost:8000/dashboard 
 
 ## Architecture & Scoring

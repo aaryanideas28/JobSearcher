@@ -16,6 +16,7 @@ class AgentState(TypedDict):
 
     session_id: str
     user_id: int
+    job_id: NotRequired[int]
     resume_text: str
     job_description: str
     user_resume_json: NotRequired[dict[str, Any]]
@@ -32,8 +33,9 @@ class AgentState(TypedDict):
     discovered_jobs: NotRequired[list[dict[str, Any]]]
     selected_job: NotRequired[dict[str, Any]]
     extracted_facts: NotRequired[dict[str, Any]]
-    optimized_resume: NotRequired[str]
+    optimized_resume: NotRequired[str | dict[str, Any]]
     ats_score: NotRequired[float]
+    matching_score: NotRequired[float]
     ats_details: NotRequired[dict[str, Any]]
     cover_letter: NotRequired[str]
     email_payload: NotRequired[dict[str, Any]]
@@ -52,3 +54,12 @@ class AgentState(TypedDict):
     original_uploaded_file: NotRequired[str]
     active_resume: NotRequired[str]
     recommendation: NotRequired[str]
+    information_density: NotRequired[dict[str, Any]]
+    uploaded_resume_text: NotRequired[str]
+    keep_original: NotRequired[bool]
+    action: NotRequired[str]
+    candidate_context: NotRequired[dict[str, Any] | str]
+    candidate_name: NotRequired[str]
+    email: NotRequired[str]
+    phone: NotRequired[str]
+    core_skills: NotRequired[list[str]]

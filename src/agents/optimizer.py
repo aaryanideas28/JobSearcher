@@ -34,6 +34,7 @@ class ResumeOptimizer:
         self.router = router or TaskComplexityRouter()
         self.llm_client = llm_client or OllamaClient()
         self.ats_engine = ats_engine or ATSEngine()
+        self.raw_resume_text = ""
 
     def extract_resume_facts(self, resume_text: str) -> Dict[str, Any]:
         """Extract simple facts from resume text for downstream validation."""
@@ -89,10 +90,10 @@ class ResumeOptimizer:
         return trimmed.strip()
 
 
-    async def build_resume_from_skills(self, skills: List[str], target_role: str) -> Dict[str, Any]:
+    async def build_resume_from_skills(self, skills: List[str], target_role: str) -> Dict[str, Any] | str:
         """Synthesize a complete, professional JSON resume schema from a list of skills and target role."""
         if not skills and not target_role:
-            raise ValueError("Cannot invoke optimizer on empty candidate context")
+            return self.raw_resume_text or ""
 
         import json
         from src.security.validation import JSONSchemaValidator

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from pathlib import Path
@@ -15,8 +16,11 @@ from src.database.models import HitlDecision, ResumeVersion, WorkflowSession, Jo
 from src.api.dependencies import get_db
 from src.agents.optimizer import ResumeOptimizer
 from src.agents.ats_engine import ATSEngine
-from src.agents.outreach import OutreachAgent
+from src.agents.outreach import OutreachAgent, extract_contact_email, infer_recruiter_email
+from src.agents.resume_extractor import extract_resume_details
 from src.utils.docx_compiler import DocxCompiler
+
+logger = logging.getLogger(__name__)
 
 
 class ResumeOptimizationDecision(BaseModel):
@@ -104,7 +108,7 @@ async def _record_gate_decision(gate_name: str, payload: GateDecision, db: Sessi
     db.commit()
 
     if payload.approved:
-        from src.workflow.graph import graph
+        from src.workflow.graph import dispatch_outreach_node, graph
         config = {"configurable": {"thread_id": session.id}}
 
         values: dict[str, Any] = {
@@ -139,11 +143,34 @@ async def _record_gate_decision(gate_name: str, payload: GateDecision, db: Sessi
         }
         target_node = node_map.get(gate_name, gate_name)
 
-        # Update the graph state
-        await graph.aupdate_state(config, values, as_node=target_node)
-
-        # Resume the graph
-        resumed_state = await graph.ainvoke(None, config=config)
+        try:
+            if gate_name == "gate-3":
+                # The current graph completes after outreach and does not
+                # register dispatch_outreach as a node. Gate 3 is the final
+                # approval, so dispatch the persisted payload directly.
+                state.update(values)
+                resumed_state = dispatch_outreach_node(state)
+            else:
+                # Update the graph state before resuming so the resumed node
+                # has the decision and edited values after checkpoint restore.
+                await graph.aupdate_state(config, values, as_node=target_node)
+                resumed_state = await graph.ainvoke(None, config=config)
+        except Exception as exc:
+            logger.exception(
+                "HITL gate resume failed: gate=%s session_id=%s target_node=%s "
+                "state_keys=%s",
+                gate_name,
+                session.id,
+                target_node,
+                sorted(state.keys()),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    f"HITL {gate_name} resume failed at {target_node}: "
+                    f"{type(exc).__name__}: {exc}"
+                ),
+            ) from exc
 
         if isinstance(resumed_state, dict):
             session.state_json = dict(resumed_state)
@@ -224,12 +251,21 @@ async def resume_optimization_decision(
         .order_by(CandidatePreference.created_at.desc(), CandidatePreference.id.desc())
         .first()
     )
-    selected_skills = (
-        session.state_json.get("skills_to_highlight") 
-        if session.state_json and "skills_to_highlight" in session.state_json 
-        else (preference.skills_to_highlight if preference else [])
+    session_state = dict(session.state_json or {})
+    resume_details = await extract_resume_details(resume_version.raw_text or "")
+    candidate_name = (
+        session_state.get("candidate_name")
+        or resume_details.candidate_name
+        or resume_version.user.full_name
+        or "the candidate"
     )
-    target_role = preference.target_role if preference else job_target.role_title
+    selected_skills = (
+        session_state.get("core_skills")
+        or session_state.get("skills_to_highlight")
+        or (preference.skills_to_highlight if preference else [])
+        or resume_details.core_skills
+    )
+    target_role = job_target.role_title or (preference.target_role if preference else "the advertised role")
 
     ats_score_val = None
     optimized_resume_val = None
@@ -312,9 +348,17 @@ async def resume_optimization_decision(
             resume_text=optimization.optimized_resume,
             job_description=job_target.job_description,
             company_name=job_target.company_name,
+            candidate_name=candidate_name,
+            target_role=target_role,
+            candidate_skills=selected_skills,
         )
         email_payload = outreach_agent.build_email_payload(
-            recipient_email=session.state_json.get("email_draft", {}).get("recipient_email") or "review-before-send@example.com",
+            recipient_email=(
+                session.state_json.get("email_draft", {}).get("recipient_email")
+                or (session.state_json.get("selected_job") or {}).get("recruiter_email")
+                or extract_contact_email(job_target.job_description)
+                or infer_recruiter_email(job_target.company_name)
+            ),
             subject=f"Application for {job_target.role_title} at {job_target.company_name}",
             body=cover_letter,
             attachments=[generated_document_path],
@@ -389,9 +433,17 @@ async def resume_optimization_decision(
             resume_text=optimized_resume_val,
             job_description=job_target.job_description,
             company_name=job_target.company_name,
+            candidate_name=candidate_name,
+            target_role=target_role,
+            candidate_skills=selected_skills,
         )
         email_payload = outreach_agent.build_email_payload(
-            recipient_email=state.get("email_draft", {}).get("recipient_email") or "review-before-send@example.com",
+            recipient_email=(
+                state.get("email_draft", {}).get("recipient_email")
+                or (state.get("selected_job") or {}).get("recruiter_email")
+                or extract_contact_email(job_target.job_description)
+                or infer_recruiter_email(job_target.company_name)
+            ),
             subject=f"Application for {job_target.role_title} at {job_target.company_name}",
             body=cover_letter,
             attachments=[generated_document_path] if generated_document_path else [],
@@ -468,6 +520,9 @@ class HitlDecisionRequest(BaseModel):
     thread_id: str
     action: str | None = None
     approve_optimization: bool | None = None
+    candidate_name: str | None = None
+    email: str | None = None
+    core_skills: list[str] | None = None
 
 
 @router.post("/decision")
@@ -514,8 +569,148 @@ async def handle_hitl_decision(payload: HitlDecisionRequest, db: Session = Depen
     from langgraph.types import Command
 
     config = {"configurable": {"thread_id": payload.thread_id}}
+    state = dict(session.state_json or {})
+    resume_values = {
+        "action": action,
+        "keep_original": action == "keep_original",
+        "approve_optimization": action != "keep_original",
+    }
 
-    resumed_state = await graph.ainvoke(Command(resume=action), config=config)
+    if payload.candidate_name:
+        state["candidate_name"] = payload.candidate_name.strip()
+    if payload.email:
+        state["email"] = payload.email.strip()
+    if payload.core_skills:
+        state["core_skills"] = [skill.strip() for skill in payload.core_skills if skill.strip()]
+
+    # Some HITL sessions persist only the resume state. Hydrate the selected
+    # job from the relational target so keep-original emails retain the role,
+    # company, and job description the user selected in the UI.
+    if session.job_target_id:
+        job_target = db.get(JobTarget, session.job_target_id)
+        if job_target:
+            selected_job = {
+                "title": job_target.role_title,
+                "role_title": job_target.role_title,
+                "company": job_target.company_name,
+                "company_name": job_target.company_name,
+                "description": job_target.job_description,
+                "job_description": job_target.job_description,
+            }
+            state.setdefault("selected_job", selected_job)
+            state["selected_job"] = state.get("selected_job") or selected_job
+            state["job_description"] = state.get("job_description") or job_target.job_description or ""
+            state["target_role"] = state.get("target_role") or job_target.role_title or ""
+            state["target_company"] = state.get("target_company") or job_target.company_name or ""
+            resume_values.update({
+                "selected_job": state["selected_job"],
+                "job_description": state["job_description"],
+                "target_role": state["target_role"],
+                "target_company": state["target_company"],
+            })
+
+    if not state.get("candidate_name") or not state.get("core_skills"):
+        raw_resume = (
+            state.get("uploaded_resume_text")
+            or state.get("resume_text")
+            or state.get("optimized_resume")
+            or ""
+        )
+        if isinstance(raw_resume, str) and raw_resume.strip():
+            extracted_details = await extract_resume_details(raw_resume)
+            state["candidate_name"] = state.get("candidate_name") or extracted_details.candidate_name
+            state["email"] = state.get("email") or extracted_details.email
+            state["phone"] = state.get("phone") or extracted_details.phone
+            state["core_skills"] = state.get("core_skills") or extracted_details.core_skills
+            state["candidate_context"] = {
+                "candidate_name": state["candidate_name"],
+                "email": state["email"],
+                "phone": state["phone"],
+                "core_skills": state["core_skills"],
+            }
+            resume_values.update({
+                "candidate_name": state["candidate_name"],
+                "email": state["email"],
+                "phone": state["phone"],
+                "core_skills": state["core_skills"],
+                "candidate_context": state["candidate_context"],
+            })
+
+    missing_fields = []
+    candidate_name_value = str(state.get("candidate_name") or "").strip()
+    invalid_names = {"candidate", "the candidate", "unknown", "unknown candidate"}
+    if not candidate_name_value or candidate_name_value.lower() in invalid_names:
+        missing_fields.append("candidate_name")
+    if not state.get("core_skills"):
+        missing_fields.append("core_skills")
+    if missing_fields:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "CANDIDATE_DETAILS_REQUIRED",
+                "message": "Please enter your name and at least one core skill before drafting the recruiter email.",
+                "required_fields": missing_fields,
+            },
+        )
+
+    resume_values.update({
+        "candidate_name": state["candidate_name"],
+        "email": state.get("email") or "",
+        "core_skills": state["core_skills"],
+    })
+
+    try:
+        # Persist the decision into the checkpoint before supplying the resume
+        # value. This keeps state-dependent nodes from waking with stale data.
+        await graph.aupdate_state(config, resume_values)
+        resumed_state = await graph.ainvoke(Command(resume=action), config=config)
+    except Exception as exc:
+        if action == "keep_original":
+            logger.warning(
+                "No usable HITL checkpoint for keep_original; running the "
+                "post-approval path from persisted state: session_id=%s error=%s",
+                payload.thread_id,
+                exc,
+            )
+            try:
+                from src.workflow.graph import complete_node, outreach_node
+
+                fallback_state = dict(state)
+                fallback_state.update(resume_values)
+                fallback_state["optimized_resume"] = (
+                    fallback_state.get("resume_text")
+                    or fallback_state.get("uploaded_resume_text")
+                    or ""
+                )
+                fallback_state = await outreach_node(fallback_state)
+                resumed_state = await complete_node(fallback_state)
+            except Exception as fallback_exc:
+                logger.exception(
+                    "Keep-original fallback failed: session_id=%s state_keys=%s",
+                    payload.thread_id,
+                    sorted(state.keys()),
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=(
+                        "Keep-original email generation failed: "
+                        f"{type(fallback_exc).__name__}: {fallback_exc}"
+                    ),
+                ) from fallback_exc
+        else:
+            logger.exception(
+                "HITL decision resume failed: session_id=%s action=%s state_keys=%s",
+                payload.thread_id,
+                action,
+                sorted(state.keys()),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=(
+                    f"HITL decision resume failed for action '{action}': "
+                    f"{type(exc).__name__}: {exc}"
+                ),
+            ) from exc
 
     if isinstance(resumed_state, dict):
         session.state_json = dict(resumed_state)

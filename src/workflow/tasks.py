@@ -43,8 +43,8 @@ except Exception:  # pragma: no cover - import fallback for very small installs
 settings = get_settings()
 celery_app = Celery(
     "ai_resume_automation",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
+    broker=settings.celery_broker_url,
+    backend=settings.celery_result_backend,
 )
 celery_app.conf.update(
     task_always_eager=settings.celery_task_always_eager,
@@ -128,7 +128,7 @@ def _build_email_message(email_payload: dict[str, Any]) -> EmailMessage:
     for attachment in email_payload.get("attachments", []):
         path = Path(str(attachment))
         if not path.exists() or not path.is_file():
-            continue
+            raise FileNotFoundError(f"Email attachment not found: {path}")
         import mimetypes
         mime_type, _ = mimetypes.guess_type(path)
         if mime_type and "/" in mime_type:

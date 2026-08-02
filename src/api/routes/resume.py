@@ -10,10 +10,11 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from src.database.models import ResumeVersion, User, CandidatePreference, JobTarget
+from src.database.models import ResumeVersion, User, CandidatePreference, JobTarget, WorkflowSession
 from src.api.dependencies import get_db
 from src.utils.resume_parser import ResumeParser
 from src.agents.job_discovery import JobDiscoveryAgent
+from src.agents.resume_extractor import ResumeDetails, extract_resume_details
 
 router = APIRouter()
 UPLOAD_DIR = Path("storage_workspace/uploads")
@@ -37,6 +38,33 @@ class ResumeUploadRequest(BaseModel):
     template_id: str = "minimal_ats"
     session_id: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResumeParseRequest(BaseModel):
+    """Raw resume text submitted for structured intake extraction."""
+
+    resume_text: str = Field(..., min_length=1)
+
+
+@router.post("/parse-upload", response_model=ResumeDetails)
+async def parse_uploaded_resume(payload: ResumeParseRequest) -> ResumeDetails:
+    """Extract candidate fields for frontend verification before workflow start."""
+    return await extract_resume_details(payload.resume_text)
+
+
+def _persist_resume_details(session_id: str | None, details: ResumeDetails, db: Session) -> None:
+    """Persist extracted fields when an upload already belongs to a workflow session."""
+    if not session_id:
+        return
+    session = db.get(WorkflowSession, session_id)
+    if session is None:
+        return
+    state = dict(session.state_json or {})
+    state.update(details.model_dump())
+    state["candidate_context"] = details.model_dump()
+    state["skills_to_highlight"] = state.get("skills_to_highlight") or details.core_skills
+    session.state_json = state
+    db.commit()
 
 
 async def _discover_and_persist_jobs(user_id: int, db: Session, source: str = "tavily") -> list[dict[str, Any]]:
@@ -145,6 +173,8 @@ async def upload_resume(
     db.add(resume_version)
     db.commit()
     db.refresh(resume_version)
+    resume_details = await extract_resume_details(payload.resume_text)
+    _persist_resume_details(payload.session_id, resume_details, db)
 
     if payload.session_id:
         await progress_hub.publish(payload.session_id, {"type": "progress", "state": "searching", "pct": 50, "message": "Searching live tech jobs via Tavily..."})
@@ -159,6 +189,7 @@ async def upload_resume(
         "user_id": user.id,
         "resume_version_id": resume_version.id,
         "version_label": resume_version.version_label,
+        "candidate_details": resume_details.model_dump(),
         "job_targets": discovered_jobs,
     }
 
@@ -225,6 +256,8 @@ async def upload_resume_file(
     db.add(resume_version)
     db.commit()
     db.refresh(resume_version)
+    resume_details = await extract_resume_details(parsed.text)
+    _persist_resume_details(session_id, resume_details, db)
 
     if session_id:
         await progress_hub.publish(session_id, {"type": "progress", "state": "searching", "pct": 50, "message": "Searching live tech jobs via Tavily..."})
@@ -241,6 +274,7 @@ async def upload_resume_file(
         "version_label": resume_version.version_label,
         "parser": parsed.parser,
         "text_preview": parsed.text[:500],
+        "candidate_details": resume_details.model_dump(),
         "job_targets": discovered_jobs,
         "hitl_gate": {
             "gate": "gate-1",
