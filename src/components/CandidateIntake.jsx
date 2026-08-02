@@ -55,6 +55,7 @@ export default function CandidateIntake() {
   const [atsScore, setAtsScore] = useState(null);
   const [actionableFeedback, setActionableFeedback] = useState('');
   const [penalties, setPenalties] = useState(null);
+  const [improvementAdvice, setImprovementAdvice] = useState([]);
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -98,6 +99,7 @@ export default function CandidateIntake() {
         setAtsScore(result.final_ats_score ?? result.matching_score ?? null);
         setPenalties(result.ats_details?.penalties || null);
         setActionableFeedback(result.ats_details?.actionable_feedback || '');
+        setImprovementAdvice(result.ats_details?.improvement_advice || []);
         setPipelineStatus('complete');
         setPipelinePct(100);
         setPipelineMessage('Complete');
@@ -491,6 +493,7 @@ export default function CandidateIntake() {
           atsScore={atsScore}
           actionableFeedback={actionableFeedback}
           penalties={penalties}
+          improvementAdvice={improvementAdvice}
         />
 
         {searchError && (

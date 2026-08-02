@@ -181,11 +181,10 @@ async def evaluate_initial_ats(state: AgentState) -> AgentState:
         resume_text = state.get("resume_text") or ""
         job_desc = state.get("job_description") or ""
         score = await engine.combined_score(resume_text, job_desc)
-        ats_score = score.score
-        if ats_score <= 1.0:
-            ats_score = ats_score * 100.0
-        state["ats_score"] = ats_score
+        state["ats_score"] = score.details.get("ats_score", round(score.score * 100))
         state["ats_details"] = score.details
+    elif isinstance(ats_score, (int, float)) and 0 <= ats_score <= 1:
+        state["ats_score"] = round(float(ats_score) * 100)
 
     # Parse and check information density
     from src.utils.docx_compiler import DocxCompiler
@@ -346,7 +345,7 @@ async def ats_scoring_node(state: AgentState) -> AgentState:
     resume = state.get("optimized_resume") or state.get("resume_text") or ""
     job_desc = state.get("job_description") or ""
     score = await engine.combined_score(resume, job_desc)
-    state["ats_score"] = score.score
+    state["ats_score"] = score.details.get("ats_score", round(score.score * 100))
     state["ats_details"] = score.details
     state["workflow_status"] = "ats_scored"
     return state
@@ -709,8 +708,8 @@ async def complete_node(state: AgentState) -> AgentState:
             from src.agents.ats_engine import ATSEngine
 
             score = await ATSEngine().combined_score(resume, job_desc)
-            state["ats_score"] = score.score
-            state["matching_score"] = score.score
+            state["ats_score"] = score.details.get("ats_score", round(score.score * 100))
+            state["matching_score"] = state["ats_score"]
             state["ats_details"] = score.details
 
         state["active_resume"] = state.get("generated_document_path") or state.get("original_uploaded_file") or ""

@@ -5,8 +5,8 @@ import React from 'react';
  * FeedbackCard component renders actionable ATS feedback and penalty breakdowns
  * dynamically when the candidate's ATS score is < 75%.
  */
-export default function FeedbackCard({ atsScore, actionableFeedback, penalties }) {
-  if (atsScore === null || atsScore === undefined || atsScore >= 75) {
+export default function FeedbackCard({ atsScore, actionableFeedback, penalties, improvementAdvice = [] }) {
+  if (atsScore === null || atsScore === undefined || (atsScore >= 75 && improvementAdvice.length === 0)) {
     return null;
   }
 
@@ -80,6 +80,29 @@ export default function FeedbackCard({ atsScore, actionableFeedback, penalties }
           </p>
         )}
       </div>
+
+      {improvementAdvice.length > 0 && (
+        <div className="mt-4 border-t border-purple-800/30 pt-3">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-300 mb-2">
+            Recommended changes
+          </div>
+          <div className="space-y-2">
+            {improvementAdvice.map((item, idx) => (
+              <div key={`${item.category || 'advice'}-${idx}`} className="rounded-xl border border-emerald-900/30 bg-emerald-950/20 p-2.5">
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-300 font-bold shrink-0">→</span>
+                  <p className="flex-1">{item.suggestion || item}</p>
+                </div>
+                {item.target?.length > 0 && (
+                  <div className="mt-1 pl-5 text-[10px] text-emerald-200/70">
+                    Based on: {item.target.join(', ')}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

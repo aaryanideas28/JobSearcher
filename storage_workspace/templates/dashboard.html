@@ -1238,6 +1238,34 @@
         </div>
       </div>
 
+      <div id="atsExplanationPanel" style="display: none; margin: 18px 0 24px; padding: 22px; border: 1px solid rgba(124, 58, 237, 0.35); border-radius: 16px; background: rgba(38, 15, 84, 0.45);">
+        <h3 style="margin: 0 0 8px; color: var(--text-primary);">ATS Match Explanation</h3>
+        <p id="atsOverview" style="margin: 0 0 18px; color: var(--text-primary); line-height: 1.6;"></p>
+        <p style="margin: -8px 0 18px; color: var(--text-muted); font-size: 12px;">Each category is a diagnostic signal. A score of 100 means no weakness was detected in that category; job-specific variation primarily comes from skills and content alignment.</p>
+        <div style="display: grid; grid-template-columns: minmax(220px, 320px) 1fr; gap: 22px; align-items: center;">
+          <svg id="atsRadar" viewBox="0 0 260 260" role="img" aria-label="ATS score category chart" style="width: 100%; max-width: 300px; justify-self: center;">
+            <polygon points="130,30 225,99 189,210 71,210 35,99" fill="none" stroke="rgba(255,255,255,.18)" />
+            <polygon points="130,55 200,106 173,184 87,184 60,106" fill="none" stroke="rgba(255,255,255,.12)" />
+            <polygon points="130,80 175,113 157,158 103,158 85,113" fill="none" stroke="rgba(255,255,255,.10)" />
+            <polygon id="atsRadarPolygon" points="130,130 130,130 130,130 130,130 130,130" fill="rgba(16,185,129,.25)" stroke="#10b981" stroke-width="2" />
+            <g fill="var(--text-muted)" font-size="11" text-anchor="middle">
+              <text x="130" y="18">Content</text><text x="239" y="99">Format</text><text x="189" y="233">Style</text><text x="71" y="233">Sections</text><text x="21" y="99">Skills</text>
+            </g>
+          </svg>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+            <div id="atsRadarValues" style="display: contents;"></div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-top: 18px;">
+          <div style="padding: 16px; border-radius: 12px; background: rgba(16,185,129,.10);">
+            <strong style="color: #6ee7b7;">Highlights</strong><ul id="atsHighlights" style="margin: 10px 0 0; padding-left: 20px; line-height: 1.7;"></ul>
+          </div>
+          <div style="padding: 16px; border-radius: 12px; background: rgba(245,158,11,.10);">
+            <strong style="color: #fcd34d;">Improvements</strong><ul id="atsImprovements" style="margin: 10px 0 0; padding-left: 20px; line-height: 1.7;"></ul>
+          </div>
+        </div>
+      </div>
+
       <div id="emptyState" class="empty-state">
         <div class="empty-state-icon">📄</div>
         <p>Submit the intake form to search target roles and view automated job discovery matches.</p>
@@ -1284,6 +1312,9 @@
           <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
             You can edit the resume draft directly above before human approval.
           </div>
+          <button id="recalculateAts" class="secondary" type="button" style="margin-top: 10px; font-size: 12px; padding: 8px 12px;">
+            Recalculate ATS &amp; Refresh Advice
+          </button>
         </div>
 
         <div class="review-card">
@@ -1581,7 +1612,7 @@
     updateStep('intake');
 
     // Handle circular progress ring for ATS score and Actionable Feedback Panel
-    function setAtsScore(score, feedbackText = "", penalties = null) {
+    function setAtsScore(score, feedbackText = "", penalties = null, improvementAdvice = []) {
       const circle = document.getElementById("ats-circle");
       const atsSpan = document.getElementById("ats");
       const feedbackPanel = document.getElementById("atsFeedbackPanel");
@@ -1598,7 +1629,7 @@
       circle.style.strokeDashoffset = offset;
 
       // Render Actionable Feedback Panel if score < 75%
-      if (score < 75 && feedbackPanel) {
+      if ((score < 75 || (Array.isArray(improvementAdvice) && improvementAdvice.length > 0)) && feedbackPanel) {
         feedbackPanel.style.display = "block";
         const feedbackList = document.getElementById("feedbackList");
         const penaltyTags = document.getElementById("penaltyTags");
@@ -1611,6 +1642,15 @@
               <span style="font-size: 12px; color: var(--text-primary); line-height: 1.5;">${line.replace(/^[\s•\-*]+/, '')}</span>
             </div>
           `).join('');
+          if (Array.isArray(improvementAdvice) && improvementAdvice.length) {
+            feedbackList.innerHTML += `<div style="margin-top: 12px; color: #6ee7b7; font-size: 11px; font-weight: 700; text-transform: uppercase;">Recommended changes</div>`;
+            feedbackList.innerHTML += improvementAdvice.map(item => `
+              <div style="display: flex; align-items: flex-start; gap: 8px; background: rgba(6, 78, 59, 0.2); padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                <span style="color: #6ee7b7; font-weight: bold;">→</span>
+                <span style="font-size: 12px; color: var(--text-primary); line-height: 1.5;">${item.suggestion || item}</span>
+              </div>
+            `).join('');
+          }
         }
 
         if (penaltyTags && penalties) {
@@ -1624,6 +1664,37 @@
       } else if (feedbackPanel) {
         feedbackPanel.style.display = "none";
       }
+    }
+
+    function renderAtsExplanation(explanation) {
+      if (!explanation || !explanation.radar_chart) return;
+      const panel = document.getElementById("atsExplanationPanel");
+      if (!panel) return;
+      panel.style.display = "block";
+      document.getElementById("atsOverview").textContent = explanation.overview || "ATS analysis completed.";
+      const highlights = document.getElementById("atsHighlights");
+      const improvements = document.getElementById("atsImprovements");
+      highlights.replaceChildren(...(explanation.highlights || []).slice(0, 3).map(text => {
+        const item = document.createElement("li"); item.textContent = text; return item;
+      }));
+      improvements.replaceChildren(...(explanation.improvements || []).slice(0, 3).map(text => {
+        const item = document.createElement("li"); item.textContent = text; return item;
+      }));
+      const categories = ["content", "skills", "sections", "style", "format"];
+      const center = 130, radius = 100;
+      const points = categories.map((category, index) => {
+        const angle = (-90 + index * 72) * Math.PI / 180;
+        const value = Math.max(0, Math.min(100, Number(explanation.radar_chart[category] || 0))) / 100;
+        return `${center + Math.cos(angle) * radius * value},${center + Math.sin(angle) * radius * value}`;
+      }).join(" ");
+      document.getElementById("atsRadarPolygon").setAttribute("points", points);
+      const values = document.getElementById("atsRadarValues");
+      values.replaceChildren(...categories.map(category => {
+        const card = document.createElement("div");
+        card.style.cssText = "padding: 10px 12px; border-radius: 9px; background: rgba(255,255,255,.05);";
+        card.textContent = `${category[0].toUpperCase() + category.slice(1)}: ${Math.round(Number(explanation.radar_chart[category] || 0))}%`;
+        return card;
+      }));
     }
 
     // Show name of selected file
@@ -1999,7 +2070,8 @@
               job_target_id: job.job_id,
               candidate_preference_id: profileId,
               recipient_email: recipientAddr,
-              intake_mode: currentMode
+              intake_mode: currentMode,
+              template_id: document.getElementById("templateId").value
             };
             if (currentMode === "build_from_scratch") {
               payload.structured_intake = getStructuredIntakePayload();
@@ -2029,10 +2101,12 @@
                 job_description: job.description || job.title
               });
               const atsValue = atsRes.ats_score !== undefined ? atsRes.ats_score : atsRes.score;
-              setAtsScore(atsValue, atsRes.actionable_feedback || "", atsRes.penalties || null);
+              setAtsScore(atsValue, atsRes.actionable_feedback || "", atsRes.penalties || null, atsRes.improvement_advice || []);
+              renderAtsExplanation(atsRes.match_explanation);
             } catch (atsErr) {
               const fallbackAts = Math.round((latest.ats_score || 0) * 100);
-              setAtsScore(fallbackAts, latest.actionable_feedback || "", latest.penalties || null);
+              setAtsScore(fallbackAts, latest.actionable_feedback || "", latest.penalties || null, latest.improvement_advice || []);
+              renderAtsExplanation(latest.match_explanation || latest.ats_details?.match_explanation);
             }
 
             // 2. Fetch personalized email draft via POST /outreach/generate-email
@@ -2654,6 +2728,7 @@
       if (scoreVal !== null) {
         scorePct = scoreVal <= 1.0 ? Math.round(scoreVal * 100) : Math.round(scoreVal);
       }
+      renderAtsExplanation(result.match_explanation || result.ats_details?.match_explanation);
 
       const showWarning = (scoreVal !== null && scorePct < 80) && (result.status === "PAUSED_FOR_HUMAN_OPTIMIZATION_APPROVAL");
       const warningCard = document.getElementById("atsWarningCard");
@@ -2766,6 +2841,38 @@
       } catch (error) {
         status.className = "status-message error";
         status.textContent = "Outreach failed: " + error.message;
+      }
+    });
+
+    document.getElementById("recalculateAts").addEventListener("click", async () => {
+      const resumeText = document.getElementById("optimizedResume").value.trim();
+      const jobDescription = latest?.job_description || latest?.selected_job?.description || "";
+      const status = document.getElementById("status");
+      if (!resumeText || !jobDescription) {
+        status.className = "status-message error";
+        status.textContent = "A resume and selected job description are required to recalculate ATS.";
+        return;
+      }
+      status.className = "status-message working";
+      status.textContent = "Recalculating ATS score and generating grounded advice...";
+      try {
+        const result = await post("/resume/calculate-ats", {
+          tailored_resume: resumeText,
+          job_description: jobDescription
+        });
+        latest.ats_score = result.ats_score;
+        latest.ats_details = {
+          ...(latest.ats_details || {}),
+          ...result,
+          improvement_advice: result.improvement_advice || []
+        };
+        setAtsScore(result.ats_score, result.actionable_feedback || "", result.penalties || null, result.improvement_advice || []);
+        renderAtsExplanation(result.match_explanation);
+        status.className = "status-message success";
+        status.textContent = `ATS score refreshed: ${result.ats_score}%. Review the recommendations before approval.`;
+      } catch (error) {
+        status.className = "status-message error";
+        status.textContent = "ATS recalculation failed: " + error.message;
       }
     });
 

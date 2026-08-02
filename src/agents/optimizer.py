@@ -66,7 +66,6 @@ class ResumeOptimizer:
     def restore_locked_entities(self, text: str, locked: Dict[str, Set[str]]) -> str:
         """Ensure clean text without adding bloated junk headers or placeholders."""
         text = re.sub(r"#{1,6}\s*", "", text)
-        text = re.sub(r"\bWork Experience\b", "PROJECTS", text, flags=re.IGNORECASE)
         return text.strip()
 
     def clean_syntax(self, text: str) -> str:
@@ -100,7 +99,8 @@ class ResumeOptimizer:
 
         skills_str = ", ".join(skills)
         prompt = (
-            f"You are an expert resume writer. Synthesize a complete, professional, ATS-compliant JSON resume for a candidate targeting the role: '{target_role}' with the following skills: {skills_str}.\n"
+            f"You are an expert resume writer. Build an ATS-compatible JSON resume using only the supplied candidate skills and target role: '{target_role}'. Supplied skills: {skills_str}.\n"
+            "Never invent identity, education, companies, dates, experience, projects, certifications, achievements, links, or metrics. Leave unsupported fields empty. Do not convert skills into work experience.\n"
             "The JSON must strictly conform to the following schema structure, with no extra fields:\n"
             "{\n"
             '  "contact": {\n'
@@ -144,7 +144,7 @@ class ResumeOptimizer:
                 "location": "",
                 "links": [],
             },
-            "summary": f"Specialist targeting {target_role} with expertise in {', '.join(skills)}." if (target_role or skills) else "",
+            "summary": "",
             "skills": skills,
             "experience": [],
             "education": [],
@@ -272,40 +272,35 @@ class ResumeOptimizer:
         missing_keywords: List[str] | None = None,
         semantic_gaps: List[str] | None = None,
     ) -> str:
-        """Build instruction prompt matching Jenil Shah resume structure."""
-        skills = ", ".join(skills_to_highlight) if skills_to_highlight else "Python, FastAPI, Docker"
+        """Build a truthful, ATS-compatible, role-aware optimization prompt."""
+        skills = ", ".join(skills_to_highlight) if skills_to_highlight else "None supplied"
         role = target_role or "the target role"
         missing = ", ".join(missing_keywords[:6]) if missing_keywords else "None"
 
         return (
-            "You are an expert Resume Architect. Reformat and optimize the candidate's resume following the exact structural hierarchy of Jenil Shah's elite resume:\n\n"
-            "STRICT RULES & HIERARCHY:\n"
-            "1. NO 'Work Experience' or 'Professional Summary' headers unless true corporate paid experience is present. Omit them entirely otherwise.\n"
-            "2. SECTION HEADERS & DASHES: Include horizontal line dividers '---' under every section title:\n"
-            "   EDUCATION\n"
-            "   ---\n"
-            "   ACHIEVEMENTS\n"
-            "   ---\n"
-            "   PROJECTS\n"
-            "   ---\n"
-            "   EXTRACURRICULARS\n"
-            "   ---\n"
-            "   SKILLS\n"
-            "3. TOP 7-8 SKILLS MAX: Include strictly 7-8 relevant hard skills total under SKILLS. Categorize as:\n"
-            "   Languages: [max 3-4]\n"
-            "   Tools: [max 3-4]\n"
-            "   Libraries & Frameworks: [max 3-4]\n"
-            "4. STAR BULLETS WITH METRICS & BOLDING: Every project bullet MUST start with a bold Action Verb (e.g. **Engineered**, **Built**, **Implemented**, **Orchestrated**) and contain a numerical metric. You MUST strictly wrap key metrics, percentages, rankings, and lead action verbs in double asterisks (`**`) for emphasis. E.g. '**Implemented** a QA system... reducing extraction time by **20%**.', '**96% Accuracy**', '**AIR 129**', '**2k+ views**'.\n"
-            "5. STRICT ANTI-HALLUCINATION POLICY: NEVER generate synthetic placeholder companies, fake universities (such as 'Stanford University' or other defaults), default/fabricated dates, or fake/fabricated achievements if candidate data is missing or sparse. Stick strictly to candidate facts.\n"
-            "6. NO '###' or junk placeholders. Keep length under 3000 characters (1 page).\n\n"
+            "You are an expert ATS resume editor. Optimize the resume using ONLY the candidate data below.\n\n"
+            "TRUTHFULNESS RULES:\n"
+            "- Never invent or assume companies, titles, dates, education, projects, technologies, certifications, achievements, links, or metrics.\n"
+            "- Never add a job-description keyword unless the candidate data supports it.\n"
+            "- Preserve every supplied fact and metric. If a metric is missing, improve scope, method, or deliverable without inventing a number.\n"
+            "- Do not turn assistance into leadership or responsibility into an achievement.\n"
+            "- Omit unsupported sections and placeholders.\n\n"
+            "ATS AND QUALITY RULES:\n"
+            "- Use a clean single-column text layout with standard headings.\n"
+            "- Normalize compound technologies correctly (for example, FastAPI, PyTorch, TensorFlow, NumPy, Node.js, PostgreSQL, and CI/CD).\n"
+            "- Remove duplicate skills and prioritize required skills over preferred skills only when supported.\n"
+            "- Use action + task + method + result when the source supports those details.\n"
+            "- Preserve existing quantified achievements; do not force metrics into every bullet.\n"
+            "- Return only the final resume content, with no explanation or ATS commentary.\n\n"
             f"Target Role: {role}\n"
             f"Skills: {skills}\n"
             f"Missing Keywords: {missing}\n\n"
+            "ATS Analysis: Use missing keywords and penalties only as diagnostic signals. Fix only genuine issues.\n\n"
             "Original Candidate Data:\n"
             f"{resume_text}\n\n"
             "Target Job Description:\n"
             f"{job_description}\n\n"
-            "Return ONLY the beautifully formatted resume text following the Jenil Shah structure above."
+            "Return ONLY the optimized resume content."
         )
 
 
@@ -316,7 +311,10 @@ class ResumeOptimizer:
         skills_to_highlight: List[str],
         missing_keywords: List[str] | None = None,
     ) -> str:
-        """Create a clean, high-impact ATS optimization draft following Jenil Shah structure with >85% ATS score."""
+        """Return a cleaned source resume when generation is unavailable without inventing facts."""
+        return self.clean_syntax(re.sub(r"#{1,6}\s*", "", resume_text)).strip()
+
+        """Legacy fallback implementation retained below for reference only."""
         clean_text = re.sub(r"#{1,6}\s*", "", resume_text)
 
         # 1. Extract contact info

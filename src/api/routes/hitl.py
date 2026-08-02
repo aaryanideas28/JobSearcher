@@ -498,6 +498,8 @@ async def resume_optimization_decision(
         "session_id": session.id,
         "resume_version_id": session.resume_version_id,
         "job_target_id": session.job_target_id,
+        "job_description": job_target.job_description,
+        "target_role": job_target.role_title,
         "ats_score": ats_score_val,
         "optimized_resume": optimized_resume_val,
         "email_draft": email_draft_val,
@@ -731,6 +733,8 @@ async def handle_hitl_decision(payload: HitlDecisionRequest, db: Session = Depen
     return {
         "session_id": payload.thread_id,
         "workflow_status": resumed_state.get("workflow_status"),
+        "job_description": (resumed_state.get("job_description") or job_target.job_description),
+        "target_role": (resumed_state.get("target_role") or job_target.role_title),
         "ats_score": resumed_state.get("ats_score"),
         "optimized_resume": resumed_state.get("optimized_resume"),
         "email_draft": resumed_state.get("email_payload") or resumed_state.get("email_draft"),

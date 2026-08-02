@@ -224,13 +224,12 @@ def map_structured_intake_to_json(intake: dict[str, Any]) -> dict[str, Any]:
     projects = []
     for prj in intake.get("projects") or []:
         tech = prj.get("tech_used") or []
-        tech_str = f" (Technologies: {', '.join(tech)})" if tech else ""
-        desc = (prj.get("description") or "") + f". Impact: {prj.get('contribution_impact') or ''}" + tech_str
-        if prj.get("demo_link"):
-            desc += f" Demo: {prj['demo_link']}"
         projects.append({
             "name": prj.get("title") or "",
-            "description": desc
+            "description": prj.get("description") or "",
+            "contribution_impact": prj.get("contribution_impact") or "",
+            "technologies": tech,
+            "link": prj.get("demo_link") or "",
         })
 
     # Map certifications
@@ -313,7 +312,15 @@ def format_json_resume_to_text(resume: dict[str, Any]) -> str:
         for prj in resume["projects"]:
             lines.append(prj.get("name") or "")
             lines.append(prj.get("description") or "")
-        lines.append("")
+            if prj.get("contribution_impact"):
+                lines.append(f"Impact: {prj['contribution_impact']}")
+            technologies = prj.get("technologies") or prj.get("tech_used") or []
+            if technologies:
+                tech_text = ", ".join(technologies) if isinstance(technologies, list) else str(technologies)
+                lines.append(f"Technologies: {tech_text}")
+            if prj.get("link"):
+                lines.append(f"Demo: {prj['link']}")
+            lines.append("")
 
     if resume.get("certifications"):
         lines.append("CERTIFICATIONS")

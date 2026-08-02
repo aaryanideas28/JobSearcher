@@ -20,37 +20,37 @@ GENERATED_DIR = WORKSPACE_ROOT / "generated"
 
 TEMPLATE_STYLES: dict[str, dict[str, Any]] = {
     "minimal_ats": {
-        "font_family": "Times New Roman",
+        "font_family": "Arial",
         "accent_color": RGBColor(0, 0, 0),
         "accent_color_hex": "000000",
         "header_align": 1,  # Center
-        "margins": 0.5,
+        "margins": 0.75,
         "space_before": 8,
         "space_after": 2,
     },
     "modern_tech": {
-        "font_family": "Times New Roman",
-        "accent_color": RGBColor(0, 0, 0),
-        "accent_color_hex": "000000",
-        "header_align": 1,  # Center
-        "margins": 0.5,
+        "font_family": "Calibri",
+        "accent_color": RGBColor(0x0F, 0x76, 0x75),
+        "accent_color_hex": "0F7675",
+        "header_align": 0,  # Left
+        "margins": 0.6,
         "space_before": 8,
         "space_after": 2,
     },
     "classic_executive": {
-        "font_family": "Times New Roman",
-        "accent_color": RGBColor(0, 0, 0),
-        "accent_color_hex": "000000",
+        "font_family": "Georgia",
+        "accent_color": RGBColor(0x1E, 0x3A, 0x5F),
+        "accent_color_hex": "1E3A5F",
         "header_align": 1,  # Center
-        "margins": 0.5,
+        "margins": 0.75,
         "space_before": 8,
         "space_after": 2,
     },
     "compact_onepage": {
-        "font_family": "Times New Roman",
-        "accent_color": RGBColor(0, 0, 0),
-        "accent_color_hex": "000000",
-        "header_align": 1,  # Center
+        "font_family": "Arial",
+        "accent_color": RGBColor(0x47, 0x55, 0x69),
+        "accent_color_hex": "475569",
+        "header_align": 2,  # Right
         "margins": 0.5,
         "space_before": 8,
         "space_after": 2,
@@ -818,6 +818,30 @@ class DocxCompiler:
                     bp.paragraph_format.line_spacing = 1.0
                     add_markdown_paragraph_runs(bp, b, font_name, 9.5)
 
+                impact = proj.get("contribution_impact") or ""
+                if impact and impact not in bullets:
+                    bp = doc.add_paragraph(style="List Bullet")
+                    bp.paragraph_format.space_before = Pt(0)
+                    bp.paragraph_format.space_after = Pt(1)
+                    bp.paragraph_format.line_spacing = 1.0
+                    label = bp.add_run("Impact: ")
+                    label.bold = True
+                    label.font.name = font_name
+                    label.font.size = Pt(9.5)
+                    add_markdown_paragraph_runs(bp, impact, font_name, 9.5)
+
+                if tech:
+                    bp = doc.add_paragraph(style="List Bullet")
+                    bp.paragraph_format.space_before = Pt(0)
+                    bp.paragraph_format.space_after = Pt(1)
+                    bp.paragraph_format.line_spacing = 1.0
+                    label = bp.add_run("Technologies: ")
+                    label.bold = True
+                    label.font.name = font_name
+                    label.font.size = Pt(9.5)
+                    tech_clean = ", ".join(tech) if isinstance(tech, list) else str(tech)
+                    add_markdown_paragraph_runs(bp, fix_concatenated_skills(tech_clean), font_name, 9.5)
+
         # 7. ONLINE COURSES & CERTIFICATIONS
         certs = candidate_data.get("certifications")
         if certs and len(certs) > 0:
@@ -1228,7 +1252,8 @@ class DocxCompiler:
                     p2.paragraph_format.keep_with_next = True
                     
                     if tech:
-                        tech_clean = fix_concatenated_skills(tech)
+                        tech_text = ", ".join(tech) if isinstance(tech, list) else str(tech)
+                        tech_clean = fix_concatenated_skills(tech_text)
                         run_tech = p2.add_run(tech_clean)
                         run_tech.italic = True
                         run_tech.font.name = font_name
@@ -1279,6 +1304,27 @@ class DocxCompiler:
                                 run_b = bp.add_run(b)
                                 run_b.font.name = font_name
                                 run_b.font.size = Pt(9.5)
+
+                    impact = proj.get("contribution_impact") or ""
+                    if impact and impact not in bullets:
+                        bp = p.insert_paragraph_before(style="List Bullet")
+                        bp.paragraph_format.space_before = Pt(0)
+                        bp.paragraph_format.space_after = Pt(2)
+                        label = bp.add_run("Impact: ")
+                        label.bold = True
+                        label.font.name = font_name
+                        label.font.size = Pt(9.5)
+                        add_markdown_paragraph_runs(bp, impact, font_name, 9.5)
+
+                    if tech:
+                        bp = p.insert_paragraph_before(style="List Bullet")
+                        bp.paragraph_format.space_before = Pt(0)
+                        bp.paragraph_format.space_after = Pt(2)
+                        label = bp.add_run("Technologies: ")
+                        label.bold = True
+                        label.font.name = font_name
+                        label.font.size = Pt(9.5)
+                        add_markdown_paragraph_runs(bp, tech_clean, font_name, 9.5)
                 p._p.getparent().remove(p._p)
         self._enforce_tight_spacing(doc, template_id=template_id)
 

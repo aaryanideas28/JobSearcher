@@ -1,100 +1,273 @@
-# AI Resume Automation Platform
+# Startum Job Agent
 
-FastAPI, LangGraph, PostgreSQL, Redis, Celery, Ollama, and document-generation scaffold for an AI-assisted resume/job-search automation system.
+Startum is an AI-assisted job application platform built with FastAPI and LangGraph. It helps candidates upload or build resumes, discover jobs, tailor resumes, calculate ATS scores, draft recruiter outreach, review results, and approve dispatch through human-in-the-loop (HITL) gates.
+
+## Features
+
+- PDF resume upload and text extraction.
+- Guided build-from-scratch intake for candidate details, skills, education, experience, projects, certifications, and achievements.
+- Structured extraction of candidate name, email, phone, and core skills.
+- Job discovery and manually selected job targets.
+- LangGraph workflow orchestration with resumable HITL checkpoints.
+- Keep-original and AI-optimization paths with safe empty-context fallbacks.
+- Truth-preserving resume optimization that must not invent employers, dates, skills, achievements, or metrics.
+- Deterministic ATS scoring for skill coverage, required/preferred skills, role-keyword density, structure, formatting, impact verbs, brevity, and measurable impact.
+- ATS explanation with overview, radar categories, highlights, and actionable improvements.
+- ATS recalculation after editing a generated resume.
+- DOCX generation with Minimal ATS, Modern Tech, Classic Executive, and Compact One-Page templates.
+- Job-specific outreach email drafting.
+- Resume attachment resolution for outreach emails.
+- SMTP or Gmail API delivery, with optional Celery/Redis background processing.
+- FastAPI Swagger documentation and browser dashboard.
 
 ## Architecture
 
-The repository is organized around the platform layers shown in the project diagram:
+    Browser dashboard or API client
+                    |
+                    v
+              FastAPI routes
+                    |
+       +------------+-------------+
+       |            |             |
+    Resume       LangGraph      ATS
+    parsing      workflow       engine
+       |            |             |
+       +------------+-------------+
+                    |
+             DOCX and outreach
+                    |
+          SQLite/PostgreSQL + Redis
 
-- `src/api`: FastAPI routes for auth, resume versioning, HITL approvals, outreach dispatch, and health checks.
-- `src/workflow`: LangGraph state orchestration and Celery queue workers.
-- `src/agents`: Resume optimization, ATS scoring, job discovery, outreach drafting, and model routing agents.
-- `src/security`: Prompt-injection, JSON schema, hallucination, and quality guardrails.
-- `src/utils`: PDF compilation and resilient scraping helpers.
-- `database`: SQLAlchemy models plus the raw PostgreSQL schema.
-- `storage_workspace`: local templates and generated document workspace.
+Important directories:
 
-## Local Setup
+- src/api: FastAPI application and route handlers.
+- src/workflow: LangGraph state, graph nodes, and Celery tasks.
+- src/agents: optimizer, outreach, ATS, and safety agents.
+- src/utils/docx_compiler.py: structured resume to DOCX rendering.
+- storage_workspace/templates: dashboard and document templates.
+- database: database connection and schema support.
+- tests: automated tests.
 
-Create a virtual environment and install dependencies:
+## Requirements
 
-```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
- 
-Start PostgreSQL and Redis:
+- Python 3.11 or newer.
+- Docker Desktop if using PostgreSQL and Redis.
+- Optional Ollama installation for local LLM generation.
+- Optional Tavily or another configured job-search provider.
+- Optional SMTP credentials or Gmail OAuth credentials for email delivery.
 
-```powershell
-docker compose up -d
-```
+## Installation
 
-Run the API (execute from the project root directory):
+Run commands from the repository root.
 
-```powershell
-uvicorn src.api.main:app --reload
-```
-Open:
+### Windows PowerShell
 
-- API health: `http://localhost:8000/health`
-- Swagger docs: `http://localhost:8000/docs`
+    py -3.11 -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    python -m pip install --upgrade pip
+    python -m pip install -r requirements.txt
 
-## Database
+If PowerShell blocks activation:
 
-The app can create SQLAlchemy tables during local development:
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+    .\.venv\Scripts\Activate.ps1
 
-```powershell
-python -c "from database.connection import init_db; init_db()"
-```
-The equivalent PostgreSQL DDL lives in `database/schema.sql`.
-http://localhost:8000/dashboard 
+### macOS/Linux
 
-## Architecture & Scoring
+    python3 -m venv .venv
+    source .venv/bin/activate
+    python -m pip install --upgrade pip
+    python -m pip install -r requirements.txt
 
-Stratum utilizes a **Two-Page Platform Architecture** combined with a **Penalty-Based ATS Scoring System** benchmarked against leading commercial resume audit engines (e.g., Resume Worded):
+## Environment Configuration
 
-### 1. Platform Architecture (Two-Page Flow)
-- **Page 1 (Landing Page - `LandingPage.jsx`)**: The primary entry point featuring the signature **Deep Purple** brand theme (`#1a0b36` / `#260f54`), candidate transformation stories (Alex Chen & Sarah Jenkins), the **ATS Compliance Guide** (6 core rules), and a primary "Get Started" CTA.
-- **Page 2 (Original Dashboard Engine)**: Routes exclusively from the "Get Started" CTA into the interactive intake dashboard for multi-step candidate profile intake, Tavily job search, penalty-based ATS scoring, human-in-the-loop (HITL) draft reviews, auto-expansion email outreach, and automated DOCX downloading.
+Create a .env file in the project root. Never commit real credentials.
 
-### 2. Module 6: Strict Intake Guard & Validation
-- **Intake Mode Validation (`validate_candidate_intake`)**:
-  - **Unselected Mode**: Raises HTTP 400 (`"Please select an intake option..."`) when `intake_mode` is missing.
-  - **Upload Mode Guard**: Raises HTTP 400 (`"No resume file detected..."`) when `intake_mode == 'upload'` but no file or parsed text is attached.
-  - **Build-from-Scratch Guard**: Raises HTTP 400 (`"Incomplete resume form..."`) when required fields (`full_name`, `email`, `technical_skills`, `work_experience`/`projects`) are empty.
-- **Workflow & Optimizer Guardrails**:
-  - `process_intake` entry node validates state completeness, flagging `MISSING_INTAKE_DATA` errors for empty payloads.
-  - `ResumeOptimizer` rejects empty candidate contexts (`ValueError("Cannot invoke optimizer on empty candidate context")`), ensuring hallucination-free generation.
+    APP_NAME=Startum Job Agent
+    APP_ENV=development
+    APP_DEBUG=true
+    API_V1_PREFIX=/api/v1
 
-### 3. Penalty-Based ATS Scoring Calibration
-- **Realistic Calibration**: Previous optimistic scanners yielded artificially inflated scores (80%+), masking critical resume deficiencies. Stratum's calibrated scanner calculates a strict baseline score (typically **30% – 65%** for unoptimized resumes) to provide constructive, actionable feedback rather than false validation.
-- **Penalty Deduction Categories**:
-  - **Impact Verbs (-5 to -15 pts)**: Penalizes weak or passive verb phrasing (`assisted`, `helped`, `worked on`, `responsible for`, `handled`).
-  - **Formatting Artifacts (-10 to -25 pts)**: Detects non-standard parser hazards such as HTML tables, images, multi-column tab structures, or progress bars.
-  - **Brevity Violations (-5 to -15 pts)**: Penalizes resumes with word counts under 150 words or invalid bullet point lengths (< 5 or > 45 words).
-  - **Quantified Metrics Gap (-10 to -15 pts)**: Penalizes resumes where less than 50% of bullet points contain measurable results (percentages `%`, currency `$`, multipliers `2x`, `100+`).
-- **Actionable Feedback Payload**: Returns a 3-4 line dynamic recommendation breaking down exact skill gaps, verb replacements, and formatting fixes for scores < 75%.
-- **Auto-Optimization Target**: Triggers HITL Gate 2/3 workflows to auto-tailor resume bullets to >85% ATS compatibility.
+    # SQLite is the simplest local option.
+    DATABASE_URL=sqlite:///./resume_automation.db
 
-### 3. Resume Document Formatting Engine
-- **Syntax Cleaning**: Strips markdown bolding (`**`) and em-dashes (`—` / `–`), replacing em-dashes with standard hyphens (`-`).
-- **Typography & Uniformity**: Enforces uniform font sizes, heading weights, and spacing across all sections—specifically matching *Achievements & Extracurricular* headers to main experience entries.
-- **DOCX Compilation**: Compiles clean, single-column Word documents strictly compliant with Workday, Lever, and Greenhouse parsers.
+    REDIS_URL=redis://localhost:6379/0
+    CELERY_BROKER_URL=redis://localhost:6379/1
+    CELERY_RESULT_BACKEND=redis://localhost:6379/2
+    TAVILY_API_KEY=
 
-## Project Structure
+    # Optional integrations.
+    OPENAI_API_KEY=
+    HF_API_KEY=
 
-- `config/constants.py`: Centralized weak verbs list, metric regex patterns (`METRIC_PATTERNS_REGEX`), formatting artifact rules, and penalty weights.
-- `src/agents/ats_engine.py`: Penalty-based ATS scoring calibration engine with `_analyze_impact_verbs`, `_analyze_formatting_artifacts`, `_analyze_brevity`, and `_analyze_metric_density`.
-- `src/utils/docx_compiler.py`: Document compiler with `clean_resume_syntax()` and uniform styling.
-- `src/components/FeedbackCard.jsx`: Reusable React card for dynamic actionable feedback visualization (rendered when ATS score < 75%).
-- `src/components/LandingPage.jsx`: Deep Purple pre-intake entry landing page with social proof cards and ATS Compliance Guide.
+    # SMTP or Gmail OAuth.
+    EMAIL_SENDER=no-reply@example.com
+    SMTP_HOST=
+    SMTP_PORT=587
+    SMTP_USERNAME=
+    SMTP_PASSWORD=
+    GMAIL_CLIENT_ID=
+    GMAIL_CLIENT_SECRET=
+    GMAIL_REFRESH_TOKEN=
 
-## Tests
+    # Synchronous local email execution.
+    CELERY_TASK_ALWAYS_EAGER=true
 
-Run:
+    # Replace this outside development.
+    AUTH_TOKEN_SECRET=change-me-in-production
 
-```powershell
-python -m pytest tests/
-```
+## Optional Ollama Setup
+
+Start Ollama separately and pull the configured model:
+
+    ollama serve
+    ollama pull llama3
+
+The API can start without Ollama, but AI generation may use fallback behavior or require another configured provider.
+
+## Start PostgreSQL and Redis
+
+SQLite is the default and requires no Docker services. To use the included services:
+
+    docker compose up -d
+
+Stop them with:
+
+    docker compose down
+
+For PostgreSQL, set DATABASE_URL to:
+
+    postgresql+psycopg2://resume_user:resume_password@localhost:5432/resume_automation
+
+Initialize local tables when needed:
+
+    python -c "from database.connection import init_db; init_db()"
+
+## Start the Application
+
+    uvicorn src.api.main:app --reload
+
+Open these URLs:
+
+- Dashboard: http://127.0.0.1:8000/dashboard/
+- Swagger: http://127.0.0.1:8000/docs
+- ReDoc: http://127.0.0.1:8000/redoc
+- Health: http://127.0.0.1:8000/health
+
+For production-like local execution, omit --reload and configure a production database, secret, CORS origins, and email provider.
+
+## Optional Celery Worker
+
+By default, CELERY_TASK_ALWAYS_EAGER=true and email tasks run in the API process. For background delivery:
+
+1. Set CELERY_TASK_ALWAYS_EAGER=false.
+2. Start Redis.
+3. Start the worker in another terminal:
+
+    celery -A src.workflow.tasks.celery_app worker --loglevel=info --pool=solo
+
+A queued response requires the worker to remain running.
+
+## Dashboard Workflow
+
+1. Open the dashboard.
+2. Enter candidate contact details, target role, skills, locations, and work mode.
+3. Choose a resume template.
+4. Upload a PDF or choose Build from Scratch.
+5. Review discovered jobs and select a target role.
+6. Review the ATS score, radar explanation, highlights, and improvements.
+7. Choose Auto-Optimize Resume, Keep Original, or the scratch-build option at the HITL gate.
+8. Review the resume and outreach draft.
+9. Edit the resume and use Recalculate ATS & Refresh Advice if needed.
+10. Approve the final resume and email.
+11. Verify the recipient, subject, body, and attachment before dispatch.
+
+The selected template controls the generated DOCX layout. The editable resume text is content-focused; template differences are visible in the generated/downloaded DOCX.
+
+
+### Outreach
+
+- POST /outreach/generate-email: generate a personalized draft.
+- POST /outreach/dispatch: send or queue the email and resolve its attachment.
+
+Possible dispatch statuses include sent, queued, failed, and skipped_no_email_config. Queued means a task was submitted; it does not guarantee provider delivery.
+
+## ATS Scoring
+
+The ATS engine is deterministic by default. It evaluates:
+
+- Canonical skill overlap and aliases.
+- Required versus preferred skill coverage.
+- Role-specific keyword density.
+- Standard resume headings and contact completeness.
+- Weak or low-impact phrasing.
+- Brevity and measurable achievement signals.
+- Formatting and parser risks.
+
+The radar is diagnostic. A category at 100 means no weakness was detected for that category. Job-to-job variation usually comes from skills and content alignment. Suggestions must remain grounded in the candidate's actual resume and must not invent metrics.
+
+## Email and Attachment Troubleshooting
+
+If email dispatch does not send:
+
+1. Configure either SMTP or all required Gmail OAuth variables.
+2. If using Celery, confirm Redis and the Celery worker are running.
+3. Inspect the dispatch response fields status, result, task_id, and attachment.
+4. Confirm the attachment path exists under storage_workspace.
+5. Check provider authentication, TLS/SSL settings, spam folders, and provider restrictions.
+
+The dispatch route resolves attachments from the request, workflow session, generated documents, or uploaded-file metadata.
+
+## Testing
+
+Run the complete test suite:
+
+    python -m pytest tests/ -q
+
+Run focused tests:
+
+    python -m pytest tests/test_ats_engine.py -q
+    python -m pytest tests/test_optimizer.py -q
+
+Check the working tree:
+
+    git diff --check
+
+Compile source files:
+
+    python -m compileall -q src config database
+
+## Troubleshooting
+
+### ModuleNotFoundError
+
+Activate the virtual environment and reinstall:
+
+    .\.venv\Scripts\Activate.ps1
+    python -m pip install -r requirements.txt
+
+### Database connection failure
+
+Start with SQLite:
+
+    DATABASE_URL=sqlite:///./resume_automation.db
+
+Use PostgreSQL only after docker compose up -d reports healthy services.
+
+### Port already in use
+
+    uvicorn src.api.main:app --reload --port 8001
+
+### Python or Uvicorn points to the wrong interpreter
+
+Verify the active executables:
+
+    Get-Command python
+    Get-Command uvicorn
+    python --version
+
+Then activate .venv again and reinstall dependencies.
+
+
+
+

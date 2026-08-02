@@ -440,6 +440,7 @@ async def calculate_ats(payload: CalculateATSRequest) -> dict[str, Any]:
 
     penalties = result.get("penalties", {})
     weak_verbs = penalties.get("weak_verbs_found", [])
+    explanation = result.get("match_explanation", {})
 
     return {
         "ats_score": int_score,
@@ -448,8 +449,16 @@ async def calculate_ats(payload: CalculateATSRequest) -> dict[str, Any]:
         "missing_skills": result.get("missing_skills", []),
         "semantic_gaps": result.get("semantic_gaps", []),
         "actionable_feedback": result.get("actionable_feedback", ""),
+        "improvement_advice": result.get("improvement_advice", []),
+        "score_components": result.get("score_components", {}),
+        "structure": result.get("structure", {}),
         "penalties": penalties,
         "weak_verbs": weak_verbs,
         "quick_fixes": result.get("quick_fixes", []),
+        "match_explanation": explanation,
+        "overview": explanation.get("overview", ""),
+        "radar_chart": explanation.get("radar_chart", {}),
+        "highlights": explanation.get("highlights", []),
+        "improvements": explanation.get("improvements", []),
     }
 

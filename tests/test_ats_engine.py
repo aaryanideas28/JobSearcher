@@ -76,3 +76,103 @@ def test_ats_engine_calibrated_scoring() -> None:
     irrelevant_result = engine.calculate_ats_score(irrelevant_resume, jd)
     assert irrelevant_result["ats_score"] < 50
 
+
+def test_skill_aliases_are_canonically_matched() -> None:
+    engine = ATSEngine()
+    result = engine.calculate_ats_score(
+        "Backend engineer with Kubernetes, Node.js, and machine learning experience.",
+        "Required: k8s, nodejs, and ML experience.",
+    )
+
+    assert "kubernetes" in result["matched_skills"]
+    assert "node.js" in result["matched_skills"]
+    assert "machine learning" in result["matched_skills"]
+    assert not result["missing_skills"]
+
+
+def test_structure_signals_are_diagnostic_not_hard_failures() -> None:
+    engine = ATSEngine()
+    result = engine.calculate_ats_score(
+        "Jane Doe\nEmail: jane@example.com\nSkills\nPython",
+        "Python developer",
+    )
+
+    assert result["overall_score"] > 0
+    assert result["structure"]["contact"]["email_detected"] is True
+    assert "experience" in result["structure"]["missing_headings"]
+    assert isinstance(result["structure"]["parse_warnings"], list)
+
+
+def test_required_and_preferred_skills_are_reported_separately() -> None:
+    engine = ATSEngine()
+    result = engine.calculate_ats_score(
+        "Backend engineer with Python experience.",
+        "Required: Python. Preferred: Kubernetes.",
+    )
+
+    assert result["required_skills"] == ["python"]
+    assert result["preferred_skills"] == ["kubernetes"]
+    assert result["matched_required_skills"] == ["python"]
+    assert result["matched_preferred_skills"] == []
+
+
+def test_calculate_score_returns_isolated_cached_results() -> None:
+    engine = ATSEngine()
+    first = engine.calculate_ats_score("Python engineer", "Python developer")
+    first["matched_skills"].clear()
+    second = engine.calculate_ats_score("Python engineer", "Python developer")
+
+    assert second["matched_skills"] == ["python"]
+
+
+def test_improvement_advice_is_grounded_and_does_not_invent_metrics() -> None:
+    engine = ATSEngine()
+    result = engine.calculate_ats_score(
+        "Developer\n- Worked on backend tasks without quantified outcomes.",
+        "Required: Python. Preferred: Kubernetes.",
+    )
+
+    advice_text = " ".join(item["suggestion"] for item in result["improvement_advice"])
+    assert "Python" in advice_text
+    assert "Never invent metrics" in advice_text
+    assert "30%" not in advice_text
+
+    metric_fix = next(
+        item for item in result["quick_fixes"] if item["penalty_type"] == "metrics"
+    )
+    assert metric_fix["requires_user_value"] is True
+    assert "30%" not in metric_fix["suggestion"]
+
+
+def test_match_explanation_has_demo_schema() -> None:
+    engine = ATSEngine()
+    result = engine.calculate_ats_score(
+        "Jane Doe\nEmail: jane@example.com\nSkills\nPython\nExperience\n- Built APIs.",
+        "Required: Python. Backend developer role.",
+    )
+
+    explanation = result["match_explanation"]
+    assert explanation["match_score"] == result["ats_score"]
+    assert set(explanation["radar_chart"]) == {
+        "content",
+        "skills",
+        "sections",
+        "style",
+        "format",
+    }
+    assert len(explanation["highlights"]) == 3
+    assert len(explanation["improvements"]) == 3
+    assert all(0 <= value <= 100 for value in explanation["radar_chart"].values())
+
+
+def test_match_explanation_categories_reflect_detected_structure() -> None:
+    engine = ATSEngine()
+    result = engine.calculate_ats_score(
+        "Jane Doe\nEmail: jane@example.com\nPython developer",
+        "Python developer",
+    )
+
+    radar = result["match_explanation"]["radar_chart"]
+    assert radar["sections"] < 100
+    assert radar["skills"] == 100
+

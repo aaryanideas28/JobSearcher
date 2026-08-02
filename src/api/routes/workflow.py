@@ -34,6 +34,7 @@ class ManualOptimizeDraftRequest(BaseModel):
     intake_mode: str = Field(default="upload")
     structured_intake: dict[str, Any] = Field(default_factory=dict)
     client_session_id: str | None = None
+    template_id: str | None = None
 
 
 @router.get("/ollama/status")
@@ -68,6 +69,11 @@ async def manual_optimize_and_draft(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job target not found.")
     if resume_version.user_id != job_target.user_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Resume and job target belong to different users.")
+
+    selected_template = payload.template_id or getattr(resume_version, "template_id", None) or "minimal_ats"
+    if selected_template not in {"minimal_ats", "modern_tech", "classic_executive", "compact_onepage"}:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unsupported resume template.")
+    resume_version.template_id = selected_template
 
     preference: CandidatePreference | None = None
     if payload.candidate_preference_id is not None:
@@ -176,7 +182,7 @@ async def manual_optimize_and_draft(
         "target_company": job_target.company_name,
         "user_id": resume_version.user_id,
         "attempt_count": resume_version.id,
-        "template_id": getattr(resume_version, "template_id", "minimal_ats")
+        "template_id": selected_template
     }, docx_path)
 
     attached_path = docx_path.resolve()
@@ -250,6 +256,8 @@ async def manual_optimize_and_draft(
         "session_id": session_id,
         "resume_version_id": resume_version.id,
         "job_target_id": job_target.id,
+        "job_description": job_target.job_description,
+        "target_role": job_target.role_title,
         "routing": optimization.metadata.get("routing"),
         "skills_to_highlight": selected_skills,
         "candidate_preference_id": preference.id if preference else None,

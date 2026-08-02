@@ -88,6 +88,33 @@ def test_optimizer_preserves_locked_entities() -> None:
         assert name in opt_result.optimized_resume
 
 
+def test_optimizer_prompt_requires_truthful_source_only() -> None:
+    optimizer = ResumeOptimizer()
+    prompt = optimizer._build_optimization_prompt(
+        resume_text="Jane Doe\nPython developer",
+        job_description="Required: Python",
+        skills_to_highlight=["Python"],
+        target_role="Backend Engineer",
+        missing_keywords=["FastAPI"],
+    )
+
+    assert "Never invent or assume" in prompt
+    assert "Never add a job-description keyword unless" in prompt
+    assert "Return ONLY the optimized resume content" in prompt
+
+
+def test_optimizer_fallback_does_not_create_candidate_facts() -> None:
+    optimizer = ResumeOptimizer()
+    source = "Jane Doe\nPython developer\nBuilt internal tools."
+    fallback = optimizer._local_optimization_fallback(source, "Required: Python", ["Python"])
+
+    assert "Jane Doe" in fallback
+    assert "Built internal tools." in fallback
+    assert "Aaryan Johri" not in fallback
+    assert "VJTI" not in fallback
+    assert "30%" not in fallback
+
+
 def test_optimizer_enforces_1_page_length_limit() -> None:
     optimizer = ResumeOptimizer()
 
