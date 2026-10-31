@@ -1,0 +1,163 @@
+%% Jake's Resume — Jinja2 LaTeX Template
+%% Custom delimiters: \VAR{...}  \BLOCK{...}  \COMMENT{...}
+%% Compatible with: Tectonic, MiKTeX, pdflatex, Overleaf
+%% ATS-parseable: single column, standard packages, no images/custom fonts
+\documentclass[VAR{font_size|default('11pt')}]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+%% Page geometry
+\usepackage[
+  top=VAR{margin_top|default('0.5in')},
+  bottom=VAR{margin_bottom|default('0.5in')},
+  left=VAR{margin_left|default('0.5in')},
+  right=VAR{margin_right|default('0.5in')}
+]{geometry}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+%% Section formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large
+}{}{0em}{}[\titlerule\vspace{-5pt}]
+
+%% Custom commands
+\newcommand{\resumeItem}[1]{\item\small{#1\vspace{-2pt}}}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+  \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+    \textbf{#1} & #2 \\
+    \textit{\small#3} & \textit{\small #4} \\
+  \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+  \item
+  \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+    \small#1 & #2 \\
+  \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}[leftmargin=0.15in]}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%% ============================================================
+\begin{document}
+
+%% ---- HEADER -----------------------------------------------
+\begin{center}
+  {\Huge \scshape VAR{contact.name}} \\ \vspace{1pt}
+  \small
+  \BLOCK{set contact_parts = []}
+  \BLOCK{if contact.phone}\BLOCK{do contact_parts.append(contact.phone)}\BLOCK{endif}
+  \BLOCK{if contact.email}\BLOCK{do contact_parts.append("\\href{mailto:" ~ contact.email ~ "}{" ~ contact.email ~ "}")}\BLOCK{endif}
+  \BLOCK{if contact.linkedin}\BLOCK{do contact_parts.append("\\href{" ~ contact.linkedin ~ "}{linkedin.com/in/" ~ contact.linkedin_handle|default(contact.linkedin) ~ "}")}\BLOCK{endif}
+  \BLOCK{if contact.github}\BLOCK{do contact_parts.append("\\href{" ~ contact.github ~ "}{github.com/" ~ contact.github_handle|default(contact.github) ~ "}")}\BLOCK{endif}
+  \BLOCK{if contact.location}\BLOCK{do contact_parts.append(contact.location)}\BLOCK{endif}
+  VAR{contact_parts | join(" $|$ ")}
+\end{center}
+
+%% ---- EDUCATION --------------------------------------------
+\BLOCK{if education}
+\section{Education}
+\resumeSubHeadingListStart
+  \BLOCK{for edu in education}
+  \resumeSubheading
+    {VAR{edu.institution}}{VAR{edu.location|default('')}}
+    {VAR{edu.degree}}{VAR{edu.dates|default('')}}
+    \BLOCK{if edu.details}
+    \resumeItemListStart
+      \BLOCK{for detail in edu.details}
+      \resumeItem{VAR{detail}}
+      \BLOCK{endfor}
+    \resumeItemListEnd
+    \BLOCK{endif}
+  \BLOCK{endfor}
+\resumeSubHeadingListEnd
+\BLOCK{endif}
+
+%% ---- EXPERIENCE -------------------------------------------
+\BLOCK{if experience}
+\section{Experience}
+\resumeSubHeadingListStart
+  \BLOCK{for job in experience}
+  \resumeSubheading
+    {VAR{job.company}}{VAR{job.location|default('')}}
+    {VAR{job.title}}{VAR{job.dates|default('')}}
+    \BLOCK{if job.bullets}
+    \resumeItemListStart
+      \BLOCK{for bullet in job.bullets}
+      \resumeItem{VAR{bullet}}
+      \BLOCK{endfor}
+    \resumeItemListEnd
+    \BLOCK{endif}
+  \BLOCK{endfor}
+\resumeSubHeadingListEnd
+\BLOCK{endif}
+
+%% ---- PROJECTS --------------------------------------------
+\BLOCK{if projects}
+\section{Projects}
+\resumeSubHeadingListStart
+  \BLOCK{for proj in projects}
+  \resumeProjectHeading
+    {\textbf{VAR{proj.name}} $|$ \emph{VAR{proj.technologies|default('')}}}{VAR{proj.dates|default('')}}
+    \BLOCK{if proj.bullets}
+    \resumeItemListStart
+      \BLOCK{for bullet in proj.bullets}
+      \resumeItem{VAR{bullet}}
+      \BLOCK{endfor}
+    \resumeItemListEnd
+    \BLOCK{endif}
+  \BLOCK{endfor}
+\resumeSubHeadingListEnd
+\BLOCK{endif}
+
+%% ---- TECHNICAL SKILLS ------------------------------------
+\BLOCK{if technical_skills}
+\section{Technical Skills}
+\begin{itemize}[leftmargin=0.15in, label={}]
+  \small{\item{
+    \BLOCK{for category, items in technical_skills.items()}
+    \BLOCK{if items}
+    \textbf{VAR{category}}{: VAR{items if items is string else items | join(', ')}} \\
+    \BLOCK{endif}
+    \BLOCK{endfor}
+  }}
+\end{itemize}
+\BLOCK{endif}
+
+%% ---- ACHIEVEMENTS -----------------------------------------
+\BLOCK{if achievements}
+\section{Achievements}
+\resumeItemListStart
+  \BLOCK{for item in achievements}
+  \resumeItem{VAR{item}}
+  \BLOCK{endfor}
+\resumeItemListEnd
+\BLOCK{endif}
+
+\end{document}
+
