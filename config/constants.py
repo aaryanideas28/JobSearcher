@@ -6,7 +6,7 @@ from typing import Dict, List, Set
 
 # Weak/passive verb phrases that lack strong impact.
 # NOTE: Only truly vague phrases are listed. Strong verbs like
-# "Contributed", "Collaborated", "Participated" are NOT weak —
+# "Contributed", "Collaborated", "Participated", "Took part" are NOT weak —
 # they show ownership and are kept.
 WEAK_ACTION_VERBS: List[str] = [
     "responsible for",
@@ -15,6 +15,7 @@ WEAK_ACTION_VERBS: List[str] = [
     "worked with",
     "helped",
     "helped to",
+    "helped with",
     "assisted",
     "assisted with",
     "tasked with",
@@ -23,7 +24,6 @@ WEAK_ACTION_VERBS: List[str] = [
     "attempted to",
     "aided",
     "was part of",
-    "took part in",
     "dealt with",
     "was responsible",
     "helped in",

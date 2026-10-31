@@ -53,11 +53,26 @@ STOP_WORDS: Set[str] = {
 }
 
 JOB_FILLER_WORDS: Set[str] = {
+    # Generic hiring and process terms
     "seeking", "looking", "responsibilities", "requirements", "experience",
-    "years", "candidate", "ability", "working", "strong", "team", "role",
+    "years", "candidate", "candidates", "ability", "working", "strong", "team", "teams", "role", "roles",
     "work", "skills", "knowledge", "environment", "equal", "opportunity",
     "employment", "job", "description", "full", "time", "part", "location",
     "preferred", "qualifications", "duty", "duties", "ideal", "successful",
+    "company", "companies", "plus", "bonus", "competitive", "benefits", "hiring", "apply",
+    "join", "joining", "motivated", "passion", "passionate", "culture",
+    "fast-paced", "paced", "grow", "growth", "learning", "learn", "self-starter",
+    "collaborate", "collaborating", "collaboration", "communication", "verbal", "written",
+    "excellent", "good", "great", "high", "wide", "level", "levels",
+    "familiarity", "familiar", "hands-on", "track", "record", "demonstrated",
+    "proven", "proficient", "proficiency", "understanding", "deep", "solid",
+    "write", "writing", "documentation", "services", "service", "support",
+    "degree", "bachelor", "master", "computer", "science", "engineering",
+    "related", "field", "equivalent", "practical", "inclusive", "diversity",
+    "help", "helping", "drive", "driving", "lead", "leading", "world", "mission",
+    "dynamic", "impact", "daily", "day-to-day", "standards", "best", "practices",
+    "people", "person", "need", "needs", "needed", "want", "wants", "wanted",
+    "must", "required", "minimum", "maximum", "year", "month", "months",
 }
 
 
@@ -155,24 +170,22 @@ STANDARD_RESUME_HEADINGS: Dict[str, tuple[str, ...]] = {
 STRONG_VERB_REPLACEMENTS: Dict[str, str] = {
     "assisted": "Supported",
     "assisted with": "Supported",
-    "helped": "Contributed to",
-    "helped to": "Contributed to",
+    "helped": "Led",
+    "helped to": "Executed",
+    "helped with": "Contributed to",
     "worked on": "Developed",
     "worked with": "Collaborated with",
     "responsible for": "Managed",
     "duties included": "Delivered",
     "handled": "Managed",
     "tasked with": "Executed",
-    "participated in": "Contributed to",
     "served as": "Led",
-    "contributed to": "Advanced",
     "involved in": "Executed",
     "managed to": "Achieved",
     "attempted to": "Implemented",
     "supported": "Enabled",
     "aided": "Supported",
     "was part of": "Collaborated on",
-    "took part in": "Contributed to",
     "dealt with": "Resolved",
 }
 
@@ -788,32 +801,34 @@ class ATSEngine:
         text: str,
     ) -> tuple[int, List[str]]:
         """
-        Detect weak/passive action verbs.
+        Detect weak/passive action verbs matching at the start of bullets.
         """
 
-        matches = WEAK_VERBS_REGEX.findall(text)
+        bullets = self._extract_bullets(text)
+        if not bullets:
+            bullets = self._extract_achievement_bullets(text)
+
+        matches: List[str] = []
+        bullet_start_pattern = re.compile(
+            r"^\s*(?:[-*•●▪◦]\s*|\d+[.)]\s*)?(?:"
+            + "|".join(re.escape(verb) for verb in sorted(WEAK_ACTION_VERBS, key=len, reverse=True))
+            + r")\b",
+            re.IGNORECASE,
+        )
+
+        items_to_check = bullets if bullets else [l.strip() for l in text.splitlines() if l.strip()]
+
+        for item in items_to_check:
+            m = bullet_start_pattern.search(item)
+            if m:
+                verb = re.sub(r"^\s*(?:[-*•●▪◦]\s*|\d+[.)]\s*)?", "", m.group()).strip().lower()
+                if verb:
+                    matches.append(verb)
 
         if not matches:
             return 0, []
 
-        detected = sorted(
-            {
-                (
-                    match
-                    if isinstance(match, str)
-                    else next(
-                        (
-                            item
-                            for item in match
-                            if item
-                        ),
-                        "",
-                    )
-                ).lower()
-                for match in matches
-            }
-            - {""}
-        )
+        detected = sorted(set(matches) - {""})
 
         penalty_per_occurrence = PENALTY_WEIGHTS.get(
             "weak_verb_per_occurrence",
@@ -961,8 +976,10 @@ class ATSEngine:
 
         penalty = 0
 
-        # Avoid making one condition automatically imply the other.
-        if len(words) < 150:
+        # Base brevity on bullet count and total normalized text words.
+        # A structured resume with sufficient bullets (e.g. >= 3) is not penalized
+        # for being concise (< 150 words).
+        if len(words) < 50 or (len(bullets) < 3 and len(words) < 150):
             issues.append(
                 "resume contains fewer than 150 words"
             )
@@ -990,13 +1007,13 @@ class ATSEngine:
         for bullet in bullets:
             word_count = len(bullet.split())
 
-            if word_count < 5 or word_count > 45:
+            if word_count < 4 or word_count > 50:
                 invalid_length_count += 1
 
         if invalid_length_count > 0:
             issues.append(
                 f"{invalid_length_count} bullet(s) have "
-                f"non-standard length (<5 or >45 words)"
+                f"non-standard length (<4 or >50 words)"
             )
 
             penalty += min(
