@@ -1,0 +1,355 @@
+{
+  "_comment": "Canonical skill vocabulary. Keys are canonical names (lowercase). Each entry has optional aliases.",
+  "skills": {
+    "python": {
+      "aliases": [
+        "py"
+      ]
+    },
+    "javascript": {
+      "aliases": [
+        "js"
+      ]
+    },
+    "typescript": {
+      "aliases": [
+        "ts"
+      ]
+    },
+    "golang": {
+      "aliases": [
+        "go"
+      ]
+    },
+    "java": {},
+    "c++": {
+      "aliases": [
+        "cpp"
+      ]
+    },
+    "c#": {
+      "aliases": [
+        "csharp"
+      ]
+    },
+    "rust": {},
+    "ruby": {},
+    "php": {},
+    "swift": {},
+    "kotlin": {},
+    "scala": {},
+    "r": {},
+    "sql": {},
+    "html": {},
+    "css": {},
+    "bash": {
+      "aliases": [
+        "shell"
+      ]
+    },
+    "perl": {},
+    "dart": {},
+    "elixir": {},
+    "haskell": {},
+    "fastapi": {},
+    "flask": {},
+    "django": {},
+    "spring": {
+      "aliases": [
+        "spring boot"
+      ]
+    },
+    "react": {
+      "aliases": [
+        "reactjs"
+      ]
+    },
+    "react native": {},
+    "next.js": {
+      "aliases": [
+        "nextjs"
+      ]
+    },
+    "vue": {
+      "aliases": [
+        "vuejs",
+        "vue.js"
+      ]
+    },
+    "angular": {},
+    "express": {
+      "aliases": [
+        "express.js"
+      ]
+    },
+    "node.js": {
+      "aliases": [
+        "nodejs",
+        "node"
+      ]
+    },
+    "rails": {
+      "aliases": [
+        "ruby on rails"
+      ]
+    },
+    "laravel": {},
+    "pytorch": {},
+    "tensorflow": {},
+    "keras": {},
+    "scikit-learn": {
+      "aliases": [
+        "sklearn"
+      ]
+    },
+    "numpy": {},
+    "pandas": {},
+    "jquery": {},
+    "bootstrap": {},
+    "tailwind": {
+      "aliases": [
+        "tailwindcss"
+      ]
+    },
+    "graphql": {},
+    "grpc": {},
+    "celery": {},
+    "pydantic": {},
+    "sqlalchemy": {},
+    "langgraph": {
+      "aliases": [
+        "langgraph.js"
+      ]
+    },
+    "langchain": {},
+    "huggingface": {
+      "aliases": [
+        "hugging face",
+        "hf"
+      ]
+    },
+    "transformers": {},
+    "rag": {
+      "aliases": [
+        "retrieval augmented generation",
+        "retrieval-augmented generation"
+      ]
+    },
+    "prompt engineering": {},
+    "llm": {
+      "aliases": [
+        "llms",
+        "large language model"
+      ]
+    },
+    "openai": {},
+    "computer vision": {},
+    "nlp": {
+      "aliases": [
+        "natural language processing"
+      ]
+    },
+    "mcp": {
+      "aliases": [
+        "model context protocol"
+      ]
+    },
+    "agent": {
+      "aliases": [
+        "ai agent",
+        "llm agent"
+      ]
+    },
+    "chromadb": {
+      "aliases": [
+        "chroma"
+      ]
+    },
+    "faiss": {},
+    "pinecone": {},
+    "weaviate": {},
+    "milvus": {},
+    "postgresql": {
+      "aliases": [
+        "postgres"
+      ]
+    },
+    "mysql": {},
+    "mongodb": {},
+    "sqlite": {},
+    "redis": {},
+    "elasticsearch": {},
+    "cassandra": {},
+    "mariadb": {},
+    "dynamodb": {},
+    "oracle": {},
+    "neo4j": {},
+    "firebase": {},
+    "snowflake": {},
+    "docker": {},
+    "kubernetes": {
+      "aliases": [
+        "k8s"
+      ]
+    },
+    "aws": {
+      "aliases": [
+        "amazon web services"
+      ]
+    },
+    "gcp": {
+      "aliases": [
+        "google cloud",
+        "google cloud platform"
+      ]
+    },
+    "azure": {
+      "aliases": [
+        "microsoft azure"
+      ]
+    },
+    "jenkins": {},
+    "terraform": {},
+    "ansible": {},
+    "git": {},
+    "github": {},
+    "gitlab": {},
+    "prometheus": {},
+    "grafana": {},
+    "nginx": {},
+    "apache": {},
+    "linux": {
+      "aliases": [
+        "unix"
+      ]
+    },
+    "ci/cd": {
+      "aliases": [
+        "cicd",
+        "continuous integration",
+        "continuous delivery"
+      ]
+    },
+    "github actions": {},
+    "circleci": {},
+    "helm": {},
+    "datadog": {},
+    "rest": {
+      "aliases": [
+        "restful",
+        "rest api",
+        "rest apis"
+      ]
+    },
+    "api": {
+      "aliases": [
+        "apis"
+      ]
+    },
+    "websockets": {
+      "aliases": [
+        "websocket",
+        "ws"
+      ]
+    },
+    "microservices": {},
+    "agile": {},
+    "scrum": {},
+    "tdd": {},
+    "devops": {},
+    "machine learning": {
+      "aliases": [
+        "ml"
+      ]
+    },
+    "deep learning": {},
+    "artificial intelligence": {
+      "aliases": [
+        "ai"
+      ]
+    },
+    "system design": {},
+    "data structures": {},
+    "algorithms": {},
+    "distributed systems": {},
+    "oauth": {
+      "aliases": [
+        "oauth2"
+      ]
+    },
+    "jwt": {},
+    "pytest": {},
+    "unittest": {},
+    "jest": {},
+    "selenium": {},
+    "playwright": {},
+    "postman": {},
+    "or-tools": {
+      "aliases": [
+        "ortools",
+        "google or-tools"
+      ]
+    },
+    "tree-sitter": {
+      "aliases": [
+        "tree_sitter",
+        "treesitter"
+      ]
+    },
+    "kafka": {},
+    "spark": {
+      "aliases": [
+        "apache spark"
+      ]
+    },
+    "airflow": {
+      "aliases": [
+        "apache airflow"
+      ]
+    },
+    "dbt": {},
+    "restful": {},
+    "spring boot": {},
+    "unit test": {},
+    "testing": {},
+    "gitflow": {},
+    "vercel": {},
+    "netlify": {},
+    "asp.net": {},
+    "mocha": {},
+    "active directory": {},
+    "junit": {},
+    "mvc": {},
+    "objective-c": {},
+    "integration test": {},
+    "net core": {},
+    "couchdb": {},
+    "play framework": {},
+    "sequelize": {},
+    "heroku": {},
+    "testng": {},
+    "cloud computing": {},
+    "memcached": {},
+    "codeigniter": {},
+    "openstack": {},
+    "clickhouse": {},
+    "symfony": {},
+    "postgres": {},
+    "web3": {},
+    "kanban": {},
+    "vagrant": {},
+    "saml": {},
+    "blockchain": {},
+    "prisma": {},
+    "cucumber": {},
+    "unix": {},
+    "oop": {},
+    "new relic": {},
+    "influxdb": {},
+    "hibernate": {},
+    "natural language processing": {},
+    "go": {},
+    "shell": {},
+    "cypress": {}
+  }
+}

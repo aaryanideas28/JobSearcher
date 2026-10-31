@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import json
 import math
 import os
 import re
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List, Set
 
 from src.clients.embeddings import get_embedding
@@ -63,78 +65,38 @@ JOB_FILLER_WORDS: Set[str] = {
 # TECHNICAL SKILLS
 # =============================================================================
 
-COMMON_TECHNICAL_SKILLS: Set[str] = {
-    # Programming Languages
-    "python", "javascript", "typescript", "golang", "go", "java",
-    "c++", "c#", "rust", "ruby", "php", "swift", "kotlin", "scala",
-    "r", "sql", "html", "css", "bash", "shell", "perl", "dart",
-    "objective-c", "elixir", "haskell",
+def _load_skills_vocabulary() -> tuple[Set[str], Dict[str, str]]:
+    """Load canonical technical skills and aliases from skills_vocab.json."""
+    vocab_path = Path(__file__).resolve().parent.parent / "config" / "skills_vocab.json"
+    skills_set: Set[str] = set()
+    aliases_dict: Dict[str, str] = {}
 
-    # Frameworks & Libraries
-    "fastapi", "flask", "django", "spring", "spring boot",
-    "react", "react native", "next.js", "nextjs", "vue", "vuejs",
-    "angular", "express", "node.js", "nodejs", "rails", "laravel",
-    "pytorch", "tensorflow", "keras", "scikit-learn", "numpy",
-    "pandas", "sklearn", "jquery", "bootstrap", "tailwind",
-    "hibernate", "prisma", "sequelize", "graphql", "grpc",
-    "play framework", "net core", "asp.net", "symfony", "codeigniter",
+    if vocab_path.exists():
+        try:
+            with open(vocab_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for canonical, info in data.get("skills", {}).items():
+                c_clean = canonical.lower().strip()
+                skills_set.add(c_clean)
+                aliases_dict[c_clean] = c_clean
+                for alias in info.get("aliases", []):
+                    a_clean = alias.lower().strip()
+                    skills_set.add(a_clean)
+                    aliases_dict[a_clean] = c_clean
+            if skills_set:
+                return skills_set, aliases_dict
+        except Exception:
+            pass
 
-    # AI / LLM
-    "langchain", "huggingface", "hugging face", "transformers",
-    "rag", "retrieval augmented generation",
-    "retrieval-augmented generation",
-    "prompt engineering", "llm", "llms", "openai",
-    "computer vision", "nlp", "natural language processing",
-
-    # Vector Databases
-    "chromadb", "chroma", "faiss", "pinecone", "weaviate", "milvus",
-
-    # Databases & Caching
-    "postgresql", "postgres", "mysql", "mongodb", "sqlite",
-    "redis", "elasticsearch", "cassandra", "mariadb", "dynamodb",
-    "oracle", "neo4j", "firebase", "couchdb", "influxdb",
-    "clickhouse", "memcached",
-
-    # DevOps, Cloud & Systems
-    "docker", "kubernetes", "k8s", "aws", "gcp", "azure",
-    "jenkins", "terraform", "ansible", "git", "github", "gitlab",
-    "prometheus", "grafana", "nginx", "apache", "linux", "unix",
-    "heroku", "netlify", "vercel", "ci/cd", "cicd", "circleci",
-    "github actions", "datadog", "new relic", "vagrant",
-    "openstack", "helm",
-
-    # Architecture / Concepts
-    "rest", "restful", "api", "apis", "microservices",
-    "agile", "scrum", "kanban", "oop", "mvc", "tdd",
-    "devops", "cloud computing", "machine learning",
-    "deep learning", "artificial intelligence", "ai", "ml",
-    "gitflow", "distributed systems", "system design",
-    "data structures", "algorithms", "web3", "blockchain",
-    "oauth", "jwt", "saml", "active directory",
-
-    # Testing
-    "testing", "unit test", "integration test", "pytest",
-    "unittest", "mocha", "jest", "selenium", "playwright",
-    "cypress", "junit", "testng", "cucumber", "postman",
-}
+    # Safe fallback if file not readable
+    fallback_skills = {
+        "python", "fastapi", "docker", "kubernetes", "sql", "git", "ci/cd",
+        "rest", "api", "pytest", "redis", "postgresql", "llm", "rag"
+    }
+    return fallback_skills, {s: s for s in fallback_skills}
 
 
-SKILL_ALIASES: Dict[str, str] = {
-    "k8s": "kubernetes",
-    "nodejs": "node.js",
-    "nextjs": "next.js",
-    "vuejs": "vue",
-    "sklearn": "scikit-learn",
-    "cicd": "ci/cd",
-    "apis": "api",
-    "llms": "llm",
-    "ml": "machine learning",
-    "ai": "artificial intelligence",
-    "hugging face": "huggingface",
-    "chroma": "chromadb",
-    "retrieval augmented generation": "rag",
-    "retrieval-augmented generation": "rag",
-}
+COMMON_TECHNICAL_SKILLS, SKILL_ALIASES = _load_skills_vocabulary()
 
 
 # =============================================================================
@@ -730,7 +692,7 @@ class ATSEngine:
 
             word_count = len(cleaned.split())
 
-            if word_count < 6:
+            if word_count < 4:
                 continue
 
             # Explicit bullet = candidate achievement statement.
@@ -801,9 +763,7 @@ class ATSEngine:
         issues: List[str] = []
         penalty = 0
 
-        # With only 1-2 achievement bullets, a ratio-based penalty is
-        # statistically noisy and can create misleading recommendations.
-        if total_count >= 3 and ratio < 0.50:
+        if total_count >= 1 and ratio < 0.50:
             percentage = int(round(ratio * 100))
 
             issues.append(
@@ -873,8 +833,60 @@ class ATSEngine:
         return penalty, detected
 
     # =========================================================================
-    # FORMATTING
+    # TEXT NORMALIZATION & FORMATTING
     # =========================================================================
+
+    @staticmethod
+    def normalize_extracted_text(text: str) -> str:
+        """
+        Normalize text extracted from PDF or LaTeX documents.
+        Handles:
+        - Ligatures (fi, fl, ffi, ffl, ft, st, oe, ae)
+        - Symbols and tildes (∼, ~, non-breaking spaces)
+        - Non-standard bullet characters (•, ●, ▪, etc.) to standard '- '
+        - Collapse wide whitespace and tabs from right-aligned dates
+        - Normalize isolated inline '|' separators so they do not trigger table penalties
+        """
+        if not text:
+            return ""
+
+        # 1. Ligatures
+        ligatures = {
+            "\ufb00": "ff",
+            "\ufb01": "fi",
+            "\ufb02": "fl",
+            "\ufb03": "ffi",
+            "\ufb04": "ffl",
+            "\ufb05": "ft",
+            "\ufb06": "st",
+            "œ": "oe",
+            "æ": "ae",
+            "Œ": "Oe",
+            "Æ": "Ae",
+        }
+        for lig, repl in ligatures.items():
+            text = text.replace(lig, repl)
+
+        # 2. Tildes, zero-width and non-breaking spaces
+        text = text.replace("∼", " - ")
+        text = text.replace("~", " ")
+        text = text.replace("\u00a0", " ")
+        text = text.replace("\u200b", "")
+
+        # 3. Bullets: normalize exotic bullets at line start to standard '- '
+        bullet_chars = r"[\u2022\u25cf\u25cb\u25aa\u25ab\u25c6\u2023\u2043\u2219\u25b8\u25e6]"
+        text = re.sub(rf"(?m)^\s*{bullet_chars}\s*", "- ", text)
+
+        # 4. Spacing from right-aligned dates / headers
+        # E.g. "Software Engineer          May 2024" -> "Software Engineer - May 2024"
+        text = re.sub(
+            r"[\t ]{3,}(?=(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|June|July|August|September|October|November|December|\d{4})\b|Present|Current))",
+            " - ",
+            text,
+            flags=re.IGNORECASE,
+        )
+
+        return text
 
     def _analyze_formatting_artifacts(
         self,
@@ -882,15 +894,19 @@ class ATSEngine:
     ) -> tuple[int, List[str]]:
         """
         Detect ATS-unfriendly formatting artifacts.
+        Only fires on real tables, images, or real multi-column tab layouts.
         """
 
         issues: List[str] = []
         penalty = 0
 
-        if (
-            FORMATTING_ARTIFACT_PATTERNS["table_pipes"].search(text)
-            or FORMATTING_ARTIFACT_PATTERNS["html_tables"].search(text)
-        ):
+        # Check for real markdown tables:
+        # e.g. markdown table header/delimiter row "|---|---|" or multiple consecutive rows starting and ending with "|"
+        has_table_grid = bool(re.search(r"\|\s*[-:]{2,}\s*\|", text))
+        has_multi_pipe_rows = len(re.findall(r"(?m)^\s*\|.+?\|.+?\|\s*$", text)) >= 2
+        has_html_table = bool(FORMATTING_ARTIFACT_PATTERNS["html_tables"].search(text))
+
+        if has_table_grid or has_multi_pipe_rows or has_html_table:
             issues.append("tables/columns detected")
 
             penalty += PENALTY_WEIGHTS.get(
@@ -906,7 +922,9 @@ class ATSEngine:
                 15,
             )
 
-        if FORMATTING_ARTIFACT_PATTERNS["multi_column_tabs"].search(text):
+        # Multi-column tabs: 3+ lines with tabs separating data columns
+        tab_lines = [l for l in text.splitlines() if re.search(r"\S\t{2,}\S", l)]
+        if len(tab_lines) >= 3:
             issues.append("multi-column tab spacing")
             penalty += 5
 
@@ -1106,13 +1124,13 @@ class ATSEngine:
                 suggestion = (
                     f"{metric_issues[0]}. Add truthful measurable "
                     f"outcomes only to achievement bullets that currently "
-                    f"lack evidence. Existing quantified bullets do not "
+                    f"lack evidence. Never invent metrics. Existing quantified bullets do not "
                     f"need additional numbers."
                 )
             else:
                 suggestion = (
                     "Add truthful measurable outcomes to relevant "
-                    "achievement bullets when real metrics are available."
+                    "achievement bullets when real metrics are available. Never invent metrics."
                 )
 
             advice.append({
@@ -1376,6 +1394,8 @@ class ATSEngine:
                 ),
                 "penalties": {},
             }
+
+        resume_text = self.normalize_extracted_text(resume_text)
 
         # =====================================================================
         # 1. TECHNICAL SKILL MATCHING

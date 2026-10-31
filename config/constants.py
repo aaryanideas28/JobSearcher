@@ -4,29 +4,30 @@
 import re
 from typing import Dict, List, Set
 
-# Weak/passive verb phrases that lack strong impact
+# Weak/passive verb phrases that lack strong impact.
+# NOTE: Only truly vague phrases are listed. Strong verbs like
+# "Contributed", "Collaborated", "Participated" are NOT weak —
+# they show ownership and are kept.
 WEAK_ACTION_VERBS: List[str] = [
-    "assisted",
-    "assisted with",
-    "helped",
-    "helped to",
-    "worked on",
-    "worked with",
     "responsible for",
     "duties included",
-    "handled",
+    "worked on",
+    "worked with",
+    "helped",
+    "helped to",
+    "assisted",
+    "assisted with",
     "tasked with",
-    "participated in",
-    "served as",
-    "contributed to",
     "involved in",
     "managed to",
     "attempted to",
-    "supported",
     "aided",
     "was part of",
     "took part in",
     "dealt with",
+    "was responsible",
+    "helped in",
+    "support for",
 ]
 
 # Compiled Regex pattern for weak action verbs (word boundary, case-insensitive)
